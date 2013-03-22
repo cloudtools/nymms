@@ -77,9 +77,6 @@ class Host(NanoResource):
         return monitor_dict
 
     def build_context(self, monitoring_group, monitor):
-        if monitor._monitor_context:
-            return monitor._monitor_context
-
         context = {}
         for obj in (monitor.command, monitoring_group, self, monitor):
             c = obj.generate_context()
@@ -87,7 +84,6 @@ class Host(NanoResource):
             for k, v in c.values()[0].iteritems():
                 if not k == 'name':
                     context[k] = v
-        monitor._monitor_context = context
         return context
 
 
@@ -97,7 +93,6 @@ class Monitor(NanoResource):
     context_attributes = ['name']
 
     def __init__(self, name, command, monitoring_groups, **kwargs):
-        self._monitor_context = None
         self.name = name
         self.command = command
         self.monitoring_groups = {}
