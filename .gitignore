@@ -48,6 +48,8 @@ build/
 
 # Build object file directory
 objdir/
+dist/
+nanomon.egg-info
 
 # nosetest --with-coverage dumps these in CWD
 .coverage
