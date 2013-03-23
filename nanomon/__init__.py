@@ -1,4 +1,8 @@
+import logging
+
 from nanomon import registry
+
+logger = logging.getLogger(__name__)
 
 RESERVED_ATTRIBUTES = ['name', 'address', 'host_monitor', 'monitoring_groups',
         'command_string']
@@ -22,11 +26,16 @@ class NanoResource(object):
         self.register()
 
     def register(self):
+        logger.debug("Registering %s resource '%s' with the '%s' registry." % (
+            self.__class__.__name__, self.name, self.registry._registry_name))
         self.registry[self.name] = self
 
-    def generate_context(self, force=False):
+    def _context(self, force=False):
         if self._context_cache and not force:
+            logger.debug("Returning context cache for %s resource." % (
+                    self.name))
             return self._context_cache
+        logger.debug("Generating context cache for %s resource." % (self.name))
         context_key = self.__class__.__name__.lower()
         context = {}
         for attr in self.context_attributes:
@@ -46,10 +55,14 @@ class MonitoringGroup(NanoResource):
         super(MonitoringGroup, self).__init__(name, **kwargs)
 
     def add_host(self, host):
+        logger.debug("Adding host '%s' to monitoring group '%s'." % (host.name,
+            self.name))
         self.hosts[host.name] = host
         host.monitoring_groups[self.name] = self
 
     def add_monitor(self, monitor):
+        logger.debug("Adding monitor '%s' to monitoring group '%s'." % (
+            monitor.name, self.name))
         self.monitors[monitor.name] = monitor
         monitor.monitoring_groups[self.name] = self
 
@@ -59,13 +72,15 @@ class Host(NanoResource):
     context_attributes = ['name', 'address', 'host_monitor']
 
     def __init__(self, name, address=None, host_monitor=None,
-            monitoring_groups=set(), **kwargs):
+            monitoring_groups=None, **kwargs):
         self.name = name
         self.address = address or name
         self.host_monitor = host_monitor
         self.monitoring_groups = {}
-        for group in monitoring_groups:
-            group.add_host(self)
+        self._tasks = []
+        if monitoring_groups:
+            for group in monitoring_groups:
+                group.add_host(self)
         super(Host, self).__init__(name, **kwargs)
 
     def monitors(self):
@@ -79,13 +94,25 @@ class Host(NanoResource):
     def build_context(self, monitoring_group, monitor):
         context = {}
         for obj in (monitor.command, monitoring_group, self, monitor):
-            c = obj.generate_context()
+            c = obj._context()
             context.update(c)
             for k, v in c.values()[0].iteritems():
                 if not k == 'name':
                     context[k] = v
         return context
 
+    def generate_command(self, monitoring_group, monitor):
+        context = self.build_context(monitoring_group, monitor)
+        return monitor.command.command_string.format(**context)
+
+    @property
+    def tasks(self):
+        if self._tasks:
+            return self._tasks
+        for group_name, group in self.monitoring_groups.iteritems():
+            for monitor_name, monitor in group.monitors.iteritems():
+                self._tasks.append(self.build_context(group, monitor))
+        return self._tasks
 
 
 class Monitor(NanoResource):
