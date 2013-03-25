@@ -1,3 +1,5 @@
+from weakref import WeakValueDictionary
+
 class DuplicateEntryError(Exception):
     def __init__(self, name, obj, registry):
         self.name = name
@@ -9,18 +11,17 @@ class DuplicateEntryError(Exception):
                 self.registry._registry_name, self.name)
 
 
-class Registry(dict):
-    def __init__(self, registry_name, *args, **kwargs):
-        self._registry_name = registry_name
-        super(Registry, self).__init__(*args, **kwargs)
+class Registry(WeakValueDictionary):
+    def __init__(self, object_type, *args, **kwargs):
+        self._object_type = object_type
+        #super(Registry, self).__init__(*args, **kwargs)
+        WeakValueDictionary.__init__(self, *args, **kwargs)
 
     def __setitem__(self, name, value):
+        if not isinstance(value, self._object_type):
+            raise TypeError("This registry only accepts objects of type %s." %
+                    (self._object_type.__name__))
+
         if self.has_key(name):
             raise DuplicateEntryError(name, value, self)
-        dict.__setitem__(self, name, value)
-
-
-monitoring_groups = Registry('monitoring_groups')
-hosts = Registry('hosts')
-monitors = Registry('monitors')
-commands = Registry('commands')
+        WeakValueDictionary.__setitem__(self, name, value)

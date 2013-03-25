@@ -1,4 +1,5 @@
 import logging
+from weakref import WeakValueDictionary
 
 from nanomon import registry
 
@@ -7,8 +8,27 @@ logger = logging.getLogger(__name__)
 RESERVED_ATTRIBUTES = ['name', 'address', 'host_monitor', 'monitoring_groups',
         'command_string']
 
+class RegistryMetaClass(type):
+    """ Creates a registry of all objects of a classes type.
+
+    This allows us to get a list of all objects of a given class type quickly
+    and easily.  IE:
+
+    >>> from nanomon import resources
+    >>> webservers = resources.MonitoringGroup('webservers')
+    >>> www1 = resources.Host('www1', monitoring_groups=[webservers])
+    >>> resources.Host.registry.items()
+    [('www1', <nanomon.resources.Host object at 0x10b6aa8d0>)]
+    """
+    def __new__(cls, name, bases, dct):
+        new_class = super(RegistryMetaClass, cls).__new__(cls, name, bases,
+                dct)
+        new_class.registry = registry.Registry(new_class)
+        return new_class
+
 class NanoResource(object):
-    registry = None
+    __metaclass__ = RegistryMetaClass
+
     context_attributes = ['name',]
 
     def __init__(self, name, **kwargs):
@@ -27,7 +47,7 @@ class NanoResource(object):
 
     def register(self):
         logger.debug("Registering %s resource '%s' with the '%s' registry." % (
-            self.__class__.__name__, self.name, self.registry._registry_name))
+            self.__class__.__name__, self.name, self.__class__.__name__))
         self.registry[self.name] = self
 
     def _context(self, force=False):
@@ -47,11 +67,9 @@ class NanoResource(object):
 
 
 class MonitoringGroup(NanoResource):
-    registry = registry.monitoring_groups
-
     def __init__(self, name, **kwargs):
-        self.hosts = {}
-        self.monitors = {}
+        self.hosts = WeakValueDictionary()
+        self.monitors = WeakValueDictionary()
         super(MonitoringGroup, self).__init__(name, **kwargs)
 
     def add_host(self, host):
@@ -68,7 +86,6 @@ class MonitoringGroup(NanoResource):
 
 
 class Host(NanoResource):
-    registry = registry.hosts
     context_attributes = ['name', 'address', 'host_monitor']
 
     def __init__(self, name, address=None, host_monitor=None,
@@ -76,7 +93,7 @@ class Host(NanoResource):
         self.name = name
         self.address = address or name
         self.host_monitor = host_monitor
-        self.monitoring_groups = {}
+        self.monitoring_groups = WeakValueDictionary()
         self._tasks = []
         if monitoring_groups:
             for group in monitoring_groups:
@@ -116,13 +133,12 @@ class Host(NanoResource):
 
 
 class Monitor(NanoResource):
-    registry = registry.monitors
     context_attributes = ['name']
 
     def __init__(self, name, command, monitoring_groups, **kwargs):
         self.name = name
         self.command = command
-        self.monitoring_groups = {}
+        self.monitoring_groups = WeakValueDictionary()
         for group in monitoring_groups:
             group.add_monitor(self)
 
@@ -130,7 +146,6 @@ class Monitor(NanoResource):
 
 
 class Command(NanoResource):
-    registry = registry.commands
     context_attributes = ['name', 'command_string']
 
     def __init__(self, name, command_string, **kwargs):
