@@ -8,13 +8,12 @@ class DuplicateEntryError(Exception):
 
     def __str__(self):
         return "Duplicate entry in '%s' registry for '%s'." % (
-                self.registry._registry_name, self.name)
+                self.registry._object_type.__name__, self.name)
 
 
 class Registry(WeakValueDictionary):
     def __init__(self, object_type, *args, **kwargs):
         self._object_type = object_type
-        #super(Registry, self).__init__(*args, **kwargs)
         WeakValueDictionary.__init__(self, *args, **kwargs)
 
     def __setitem__(self, name, value):
