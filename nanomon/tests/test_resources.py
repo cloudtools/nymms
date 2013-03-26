@@ -27,16 +27,13 @@ class TestNanoResources(unittest.TestCase):
                 extra2_value)
 
 
-class TestHost(unittest.TestCase):
-    def setUp(self):
-        self.mg1 = resources.MonitoringGroup('mg1')
-
+class TestNode(unittest.TestCase):
     def test_adding_monitoring_groups(self):
-        mg1 = self.mg1
-        self.assertEqual(mg1.hosts, WeakValueDictionary())
+        mg1 = resources.MonitoringGroup('mg1')
+        self.assertEqual(mg1.nodes, WeakValueDictionary())
         mg2 = resources.MonitoringGroup('mg2')
-        self.assertEqual(mg2.hosts, WeakValueDictionary())
-        host = resources.Host(name='host1', address='127.0.0.1',
+        self.assertEqual(mg2.nodes, WeakValueDictionary())
+        node = resources.Node(name='node1', address='127.0.0.1',
                 monitoring_groups=[mg1, mg2])
-        self.assertIn(host, mg1.hosts.values())
-        self.assertIn(host, mg2.hosts.values())
+        self.assertIn(node, mg1.nodes.values())
+        self.assertIn(node, mg2.nodes.values())

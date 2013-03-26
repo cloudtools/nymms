@@ -5,7 +5,7 @@ from nanomon import registry
 
 logger = logging.getLogger(__name__)
 
-RESERVED_ATTRIBUTES = ['name', 'address', 'host_monitor', 'monitoring_groups',
+RESERVED_ATTRIBUTES = ['name', 'address', 'node_monitor', 'monitoring_groups',
         'command_string']
 
 class RegistryMetaClass(type):
@@ -16,9 +16,9 @@ class RegistryMetaClass(type):
 
     >>> from nanomon import resources
     >>> webservers = resources.MonitoringGroup('webservers')
-    >>> www1 = resources.Host('www1', monitoring_groups=[webservers])
-    >>> resources.Host.registry.items()
-    [('www1', <nanomon.resources.Host object at 0x10b6aa8d0>)]
+    >>> www1 = resources.Node('www1', monitoring_groups=[webservers])
+    >>> resources.Node.registry.items()
+    [('www1', <nanomon.resources.Node object at 0x10b6aa8d0>)]
     """
     def __new__(cls, name, bases, dct):
         new_class = super(RegistryMetaClass, cls).__new__(cls, name, bases,
@@ -68,15 +68,15 @@ class NanoResource(object):
 
 class MonitoringGroup(NanoResource):
     def __init__(self, name, **kwargs):
-        self.hosts = WeakValueDictionary()
+        self.nodes = WeakValueDictionary()
         self.monitors = WeakValueDictionary()
         super(MonitoringGroup, self).__init__(name, **kwargs)
 
-    def add_host(self, host):
-        logger.debug("Adding host '%s' to monitoring group '%s'." % (host.name,
+    def add_node(self, node):
+        logger.debug("Adding node '%s' to monitoring group '%s'." % (node.name,
             self.name))
-        self.hosts[host.name] = host
-        host.monitoring_groups[self.name] = self
+        self.nodes[node.name] = node
+        node.monitoring_groups[self.name] = self
 
     def add_monitor(self, monitor):
         logger.debug("Adding monitor '%s' to monitoring group '%s'." % (
@@ -85,20 +85,20 @@ class MonitoringGroup(NanoResource):
         monitor.monitoring_groups[self.name] = self
 
 
-class Host(NanoResource):
-    context_attributes = ['name', 'address', 'host_monitor']
+class Node(NanoResource):
+    context_attributes = ['name', 'address', 'node_monitor']
 
-    def __init__(self, name, address=None, host_monitor=None,
+    def __init__(self, name, address=None, node_monitor=None,
             monitoring_groups=None, **kwargs):
         self.name = name
         self.address = address or name
-        self.host_monitor = host_monitor
+        self.node_monitor = node_monitor
         self.monitoring_groups = WeakValueDictionary()
         self._tasks = []
         if monitoring_groups:
             for group in monitoring_groups:
-                group.add_host(self)
-        super(Host, self).__init__(name, **kwargs)
+                group.add_node(self)
+        super(Node, self).__init__(name, **kwargs)
 
     def monitors(self):
         monitor_dict = {}
