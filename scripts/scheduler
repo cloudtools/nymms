@@ -1,0 +1,23 @@
+#!/usr/bin/env python
+
+from nanomon.utils import logutil
+
+from nanomon import scheduler
+from boto import sns
+from boto import sqs
+
+logger = logutil.setup_logging(tag_name='scheduler', verbose=True, stdout=True,
+        syslog=False)
+logutil.quiet_boto_logging()
+
+sns_conn = sns.connect_to_region('us-west-2')
+sqs_conn = sqs.connect_to_region('us-west-2')
+
+topic = scheduler.SNSTopic(sns_conn, 'tasks')
+queue = scheduler.SQSQueue(sqs_conn, 'tasks')
+
+node_backend = scheduler.YamlNodeBackend('nodes.yaml')
+
+s = scheduler.Scheduler(node_backend, topic, queue)
+
+s.run(sleep=10)
