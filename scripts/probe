@@ -2,7 +2,7 @@
 
 from nanomon.utils import logutil
 
-from nanomon import scheduler
+from nanomon import probe
 from nanomon.queue.backends.sns_sqs import SNSTopic, SQSQueue
 from boto import sns
 from boto import sqs
@@ -17,6 +17,6 @@ sqs_conn = sqs.connect_to_region('us-west-2')
 topic = SNSTopic(sns_conn, 'tasks')
 queue = SQSQueue(sqs_conn, 'tasks')
 
-worker = scheduler.TaskWorker(topic, queue)
+worker = probe.Probe(topic, queue)
 
 worker.run(max_sleep=10)
