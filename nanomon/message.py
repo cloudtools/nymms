@@ -10,7 +10,7 @@ class NanoMessage(object):
         self.original = message
         self.attributes = message.attributes
         self.data = json.loads(message.get_body())
-        self.task = base64.b64decode(self.data['Message'])
+        self.task = json.loads(base64.b64decode(self.data['Message']))
 
     def delete(self):
         return self.original.delete()
