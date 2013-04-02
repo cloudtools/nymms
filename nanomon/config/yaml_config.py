@@ -7,6 +7,13 @@ logger = logging.getLogger(__name__)
 
 import yaml
 
+class InvalidConfig(Exception):
+    def __init__(self, filename):
+        self.filename = filename
+
+    def __str__(self):
+        return "Unable to open config file %s." % (self.filename)
+
 def load_config(config_file='config.yaml'):
     stack = []
     root = os.path.split(os.path.abspath(config_file))[0]
@@ -16,8 +23,12 @@ def load_config(config_file='config.yaml'):
         try:
             fd = open(filename)
         except IOError, e:
-            # We can skip 'not found' errors because we use glob.glob
-            # and skip a file if it isn't found.
+            # This should only happen with the top level config file, since
+            # we use glob.glob on includes
+            if e.errno == 2:
+                logger.warning("Could not find file '%s'.  Skipping." % (
+                    filename))
+                return c
             if e.errno == 13:
                 logger.warning("Invalid permissions to open '%s'. "
                         "Skipping." % (filename))
@@ -60,4 +71,6 @@ def load_config(config_file='config.yaml'):
         return c
     logger.info("Loading config file: %s" % (config_file))
     config = recursive_preprocess(config_file)
+    if not config:
+        raise InvalidConfig(config_file)
     return yaml.safe_load(os.linesep.join(config))

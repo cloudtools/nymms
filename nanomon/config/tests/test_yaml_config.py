@@ -13,3 +13,7 @@ class TestIncludeLoader(unittest.TestCase):
         relative_config = yaml_config.load_config(full_path)
         self.assertEqual(relative_config['foo'], 'bar')
         self.assertEqual(relative_config['file1'], 1)
+
+    def test_missing_config(self):
+        with self.assertRaises(yaml_config.InvalidConfig):
+            missing_config = yaml_config.load_config('nonexistant.yaml')
