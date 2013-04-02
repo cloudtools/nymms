@@ -15,7 +15,7 @@ def load_config(config_file='config.yaml'):
         c = []
         with open(filename) as fd:
             for lineno, line in enumerate(fd):
-                line = line.strip()
+                line = line.rstrip()
                 if line.startswith('!include '):
                     path = line.split(None, 1)[1]
                     # if the include doesn't have a fully qualified path then
