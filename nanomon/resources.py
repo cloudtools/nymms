@@ -118,6 +118,14 @@ class Node(NanoResource):
                     context[k] = v
         return context
 
+    def execute_monitors(self):
+        results = []
+        for group_name, group in self.monitoring_groups.iteritems():
+            for monitor_name, monitor in group.monitors.iteritems():
+                results.append(monitor.execute(
+                        self.build_context(group, monitor)))
+        return results
+
     def generate_command(self, monitoring_group, monitor):
         context = self.build_context(monitoring_group, monitor)
         return monitor.command.command_string.format(**context)
@@ -144,6 +152,9 @@ class Monitor(NanoResource):
 
         super(Monitor, self).__init__(name, **kwargs)
 
+    def execute(self, context):
+        return self.command.execute(context)
+
 
 class Command(NanoResource):
     context_attributes = ['name', 'command_string']
@@ -151,3 +162,6 @@ class Command(NanoResource):
     def __init__(self, name, command_string, **kwargs):
         self.command_string = command_string
         super(Command, self).__init__(name, **kwargs)
+
+    def execute(self, context):
+        return self.command_string.format(**context)
