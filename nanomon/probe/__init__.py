@@ -2,6 +2,7 @@ import time
 import logging
 
 from nanomon.queue import QueueWorker
+from nanomon.resources import MonitoringGroup, Node, Monitor, Command
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +24,27 @@ class Probe(QueueWorker):
             else:
                 sleep = max_sleep
 
+    def task_handler(self, task):
+        logger.debug("Handling task: %s" % (task.task))
+        group_objects = []
+        node_name = task.task['name']
+        monitoring_groups = task.task['monitoring_groups']
+        for group in monitoring_groups:
+            try:
+                group_objects.append(MonitoringGroup.registry[group])
+            except KeyError:
+                logger.warning("Monitoring group '%s' not found in registry "
+                        "for node '%s'. Skipping." % (group, node_name))
+                continue
+        node = Node.registry.get(node_name,
+                Node(node_name, monitoring_groups=group_objects))
+        logger.debug("Executing monitors for node %s:" % (node_name))
+        logger.debug(node.execute_monitors())
+        return True
+
     def handle_task_result(self, task, result):
         if result:
             logger.debug("Deleting task: %s" % (task.task))
             task.delete()
 
-    def task_handler(self, task):
-        logger.debug("Handling task: %s" % (task.task))
-        return True
+
