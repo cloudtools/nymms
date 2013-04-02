@@ -13,7 +13,18 @@ def load_config(config_file='config.yaml'):
     def recursive_preprocess(filename):
         stack.append(os.path.abspath(filename))
         c = []
-        with open(filename) as fd:
+        try:
+            fd = open(filename)
+        except IOError, e:
+            # We can skip 'not found' errors because we use glob.glob
+            # and skip a file if it isn't found.
+            if e.errno == 13:
+                logger.warning("Invalid permissions to open '%s'. "
+                        "Skipping." % (filename))
+                return c
+            raise
+
+        with fd:
             for lineno, line in enumerate(fd):
                 line = line.rstrip()
                 if line.startswith('!include '):
