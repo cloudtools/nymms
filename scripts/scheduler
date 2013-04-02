@@ -1,14 +1,35 @@
 #!/usr/bin/env python
 
+import argparse
+import sys
+
 from nanomon.utils import logutil
+from nanomon.config import yaml_config
 
 from nanomon import scheduler
 from boto import sns
 from boto import sqs
 
+parser = argparse.ArgumentParser(description='nanomon scheduler daemon')
+parser.add_argument('-c', '--config', dest='config', default='config.yaml',
+        help="Path to the config file.  Default: %(default)s")
+
+arg_manager = parser.parse_args()
+
 logger = logutil.setup_logging(tag_name='scheduler', verbose=True, stdout=True,
         syslog=False)
 logutil.quiet_boto_logging()
+
+try:
+    main_config = yaml_config.load_config(arg_manager.config)
+except IOError, e:
+    if e.errno == 2:
+        logger.critical("Unable to open config file '%s'. Exiting." % (
+            arg_manager.config))
+        sys.exit(1)
+    raise
+        
+scheduler_config = main_config.get('scheduler', {})
 
 sns_conn = sns.connect_to_region('us-west-2')
 sqs_conn = sqs.connect_to_region('us-west-2')
@@ -16,8 +37,10 @@ sqs_conn = sqs.connect_to_region('us-west-2')
 topic = scheduler.SNSTopic(sns_conn, 'tasks')
 queue = scheduler.SQSQueue(sqs_conn, 'tasks')
 
-node_backend = scheduler.YamlNodeBackend('nodes.yaml')
+node_config = scheduler_config.get('node_config', 'nodes.yaml')
+
+node_backend = scheduler.YamlNodeBackend(node_config)
 
 s = scheduler.Scheduler(node_backend, topic, queue)
 
-s.run(sleep=10)
+s.run(interval=scheduler_config.get('interval', 300))

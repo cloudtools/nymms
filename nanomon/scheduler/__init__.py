@@ -30,16 +30,16 @@ class Scheduler(QueueWorker):
         self.node_backend = node_backend
         super(Scheduler, self).__init__(topic, queue)
 
-    def run(self, sleep=300):
+    def run(self, interval=300):
         while True:
             start = time.time()
-            sleep = float(sleep)
+            interval = float(interval)
             nodes = self.node_backend.get_nodes()
             for node in nodes:
                 task = json.dumps(node)
                 logger.debug("Sending task for node '%s'." % (node['name']))
                 self.send_task(task)
-            real_sleep = sleep - (time.time() - start)
+            real_sleep = interval - (time.time() - start)
             if real_sleep <= 0:
                 continue
             logger.debug("Sleeping for %.02f." % (real_sleep))
