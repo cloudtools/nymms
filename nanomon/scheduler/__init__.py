@@ -35,9 +35,9 @@ class Scheduler(QueueWorker):
             start = time.time()
             sleep = float(sleep)
             nodes = self.node_backend.get_nodes()
-            for node, settings in nodes.iteritems():
-                task = json.dumps({node: settings})
-                logger.debug("Sending task for node '%s'." % (node))
+            for node in nodes:
+                task = json.dumps(node)
+                logger.debug("Sending task for node '%s'." % (node['name']))
                 self.send_task(task)
             real_sleep = sleep - (time.time() - start)
             if real_sleep <= 0:
