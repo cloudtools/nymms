@@ -1,5 +1,0 @@
-base:
-  - 1
-  - 2
-  - 3
-relative_include: !include relative_includes.yaml

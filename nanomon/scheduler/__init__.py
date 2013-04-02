@@ -8,7 +8,7 @@ from boto import sns
 from boto import sqs
 from boto.sqs.message import Message, RawMessage
 
-from nanomon.utils import yaml_includes
+from nanomon.config import yaml_config
 from nanomon.message import NanoMessage
 from nanomon.queue import QueueWorker
 from nanomon.queue.backends.sns_sqs import SQSQueue, SNSTopic
@@ -22,7 +22,7 @@ class YamlNodeBackend(object):
 
     def get_nodes(self):
         logger.debug("Loading node config from %s" % (self.path))
-        return yaml_includes.load_config(self.path)
+        return yaml_config.load_config(self.path)
 
 
 class Scheduler(QueueWorker):
