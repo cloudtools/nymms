@@ -7,12 +7,32 @@ logger = logging.getLogger(__name__)
 
 import yaml
 
-class InvalidConfig(Exception):
+class EmptyConfig(Exception):
     def __init__(self, filename):
         self.filename = filename
 
     def __str__(self):
-        return "Unable to open config file %s." % (self.filename)
+        return "Config file %s resulted in an empty config." % (self.filename)
+
+
+def open_config_file(config_file):
+    """ Opens a config file handling common IOError exceptions.
+    """
+    try:
+        return open(config_file)
+    except IOError, e:
+        # This should only happen with the top level config file, since
+        # we use glob.glob on includes
+        if e.errno == 2:
+            logger.warning("Could not find file '%s'.  Skipping." % (
+                config_file))
+            return None
+        if e.errno == 13:
+            logger.warning("Invalid permissions to open '%s'. "
+                    "Skipping." % (config_file))
+            return None
+        raise
+
 
 def load_config(config_file='config.yaml'):
     stack = []
@@ -20,20 +40,9 @@ def load_config(config_file='config.yaml'):
     def recursive_preprocess(filename):
         stack.append(os.path.abspath(filename))
         c = []
-        try:
-            fd = open(filename)
-        except IOError, e:
-            # This should only happen with the top level config file, since
-            # we use glob.glob on includes
-            if e.errno == 2:
-                logger.warning("Could not find file '%s'.  Skipping." % (
-                    filename))
-                return c
-            if e.errno == 13:
-                logger.warning("Invalid permissions to open '%s'. "
-                        "Skipping." % (filename))
-                return c
-            raise
+        fd = open_config_file(filename)
+        if not fd:
+            return c
 
         with fd:
             for lineno, line in enumerate(fd):
@@ -72,5 +81,5 @@ def load_config(config_file='config.yaml'):
     logger.info("Loading config file: %s" % (config_file))
     config = recursive_preprocess(config_file)
     if not config:
-        raise InvalidConfig(config_file)
+        raise EmptyConfig(config_file)
     return yaml.safe_load(os.linesep.join(config))
