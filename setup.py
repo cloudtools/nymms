@@ -1,9 +1,11 @@
 from setuptools import setup, find_packages
 
-setup(name='nanomon',
-    version='1.0',
+setup(
+    name='nymms',
+    version='0.1.0',
     author='Michael Barrett',
-    author_email='mike@brkt.com',
-    description='The Nano Monitoring System',
+    author_email='loki77@gmail.com',
+    license="New BSD license",
+    description='Not Your Mother\'s Monitoring System (NYMMS)',
     packages=find_packages(),
 )
