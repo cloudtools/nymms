@@ -37,7 +37,7 @@ Thumbs.db
 .vagrant
 
 # Editor crap
-*.swp
+*.sw*
 *~
 
 # Byte-compiled python
