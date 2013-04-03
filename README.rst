@@ -13,3 +13,13 @@ It's goals are:
 - Easy to add new monitors
 
 There are many other goals, but that's a good start.
+
+Requirements
+============
+
+Currently the main requirements are:
+
+- Python (2.7 - may work on older versions, haven't tested)
+- boto
+- PyYAML (used in a few backends, will eventually not be a requirement unless
+  you need to use those backends)
