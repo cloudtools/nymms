@@ -1,7 +1,7 @@
 import unittest
 import os
 
-from nanomon.config import yaml_config
+from nymms.config import yaml_config
 
 
 class TestIncludeLoader(unittest.TestCase):

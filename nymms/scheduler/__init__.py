@@ -8,10 +8,10 @@ from boto import sns
 from boto import sqs
 from boto.sqs.message import Message, RawMessage
 
-from nanomon.config import yaml_config
-from nanomon.message import NanoMessage
-from nanomon.queue import QueueWorker
-from nanomon.queue.backends.sns_sqs import SQSQueue, SNSTopic
+from nymms.config import yaml_config
+from nymms.message import NanoMessage
+from nymms.queue import QueueWorker
+from nymms.queue.backends.sns_sqs import SQSQueue, SNSTopic
 
 logger = logging.getLogger(__name__)
 

@@ -1,4 +1,4 @@
-from nanomon import resources
+from nymms import resources
 
 import logging
 logging.basicConfig(level=logging.DEBUG)

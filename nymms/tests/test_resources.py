@@ -1,7 +1,7 @@
 import unittest
 from weakref import WeakValueDictionary
 
-from nanomon import resources
+from nymms import resources
 
 class TestNanoResources(unittest.TestCase):
     def test_reserved_attributes(self):

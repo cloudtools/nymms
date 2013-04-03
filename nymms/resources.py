@@ -1,7 +1,7 @@
 import logging
 from weakref import WeakValueDictionary
 
-from nanomon import registry
+from nymms import registry
 
 logger = logging.getLogger(__name__)
 
@@ -14,11 +14,11 @@ class RegistryMetaClass(type):
     This allows us to get a list of all objects of a given class type quickly
     and easily.  IE:
 
-    >>> from nanomon import resources
+    >>> from nymms import resources
     >>> webservers = resources.MonitoringGroup('webservers')
     >>> www1 = resources.Node('www1', monitoring_groups=[webservers])
     >>> resources.Node.registry.items()
-    [('www1', <nanomon.resources.Node object at 0x10b6aa8d0>)]
+    [('www1', <nymms.resources.Node object at 0x10b6aa8d0>)]
     """
     def __new__(cls, name, bases, dct):
         new_class = super(RegistryMetaClass, cls).__new__(cls, name, bases,

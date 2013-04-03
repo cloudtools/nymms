@@ -3,14 +3,15 @@
 import argparse
 import sys
 
-from nanomon.utils import logutil
-from nanomon.config import yaml_config
+from nymms.utils import logutil
+from nymms.config import yaml_config
+from nymms import scheduler
+from nymms.queue.backends.sns_sqs import SNSTopic, SQSQueue
 
-from nanomon import scheduler
 from boto import sns
 from boto import sqs
 
-parser = argparse.ArgumentParser(description='nanomon scheduler daemon')
+parser = argparse.ArgumentParser(description='nymms scheduler daemon')
 parser.add_argument('-c', '--config', dest='config', default='config.yaml',
         help="Path to the config file.  Default: %(default)s")
 
@@ -22,20 +23,18 @@ logutil.quiet_boto_logging()
 
 try:
     main_config = yaml_config.load_config(arg_manager.config)
-except IOError, e:
-    if e.errno == 2:
-        logger.critical("Unable to open config file '%s'. Exiting." % (
-            arg_manager.config))
-        sys.exit(1)
-    raise
-        
+except yaml_config.EmptyConfig, e:
+    logger.critical("Unable to load a valid config.  Exiting.")
+    sys.exit(1)
+       
 scheduler_config = main_config.get('scheduler', {})
 
-sns_conn = sns.connect_to_region('us-west-2')
-sqs_conn = sqs.connect_to_region('us-west-2')
+aws_region = main_config['queue_region']
+sns_conn = sns.connect_to_region(aws_region)
+sqs_conn = sqs.connect_to_region(aws_region)
 
-topic = scheduler.SNSTopic(sns_conn, 'tasks')
-queue = scheduler.SQSQueue(sqs_conn, 'tasks')
+topic = SNSTopic(sns_conn, main_config['queue_name'])
+queue = SQSQueue(sqs_conn, main_config['topic_name'])
 
 node_config = scheduler_config.get('node_config', 'nodes.yaml')
 

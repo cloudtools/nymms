@@ -1,8 +1,8 @@
 import time
 import logging
 
-from nanomon.queue import QueueWorker
-from nanomon.resources import MonitoringGroup, Node, Monitor, Command
+from nymms.queue import QueueWorker
+from nymms.resources import MonitoringGroup, Node, Monitor, Command
 
 logger = logging.getLogger(__name__)
 

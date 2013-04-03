@@ -1,7 +1,7 @@
 import unittest
 
-from nanomon import registry
-from nanomon.resources import Command, MonitoringGroup
+from nymms import registry
+from nymms.resources import Command, MonitoringGroup
 from weakref import WeakValueDictionary
 
 class TestRegistry(unittest.TestCase):

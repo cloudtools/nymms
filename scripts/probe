@@ -1,22 +1,42 @@
 #!/usr/bin/env python
 
-from nanomon.utils import logutil
+import argparse
+import sys
+import imp
 
-from nanomon import probe
-from nanomon.queue.backends.sns_sqs import SNSTopic, SQSQueue
+from nymms.utils import logutil
+from nymms.config import yaml_config
+from nymms import probe
+from nymms.queue.backends.sns_sqs import SNSTopic, SQSQueue
+
 from boto import sns
 from boto import sqs
+
+parser = argparse.ArgumentParser(description='nymms monitor probe daemon')
+parser.add_argument('-c', '--config', dest='config', default='config.yaml',
+        help="Path to the config file.  Default: %(default)s")
+
+arg_manager = parser.parse_args()
 
 logger = logutil.setup_logging(tag_name='worker', verbose=True, stdout=True,
         syslog=False)
 logutil.quiet_boto_logging()
 
-sns_conn = sns.connect_to_region('us-west-2')
-sqs_conn = sqs.connect_to_region('us-west-2')
+try:
+    main_config = yaml_config.load_config(arg_manager.config)
+except yaml_config.EmptyConfig, e:
+    logger.critical("Unable to load a valid config.  Exiting.")
+    sys.exit(1)
 
-topic = SNSTopic(sns_conn, 'tasks')
-queue = SQSQueue(sqs_conn, 'tasks')
+probe_config = main_config.get('probe', {})
 
-worker = probe.Probe(topic, queue)
+aws_region = main_config['queue_region']
+sns_conn = sns.connect_to_region(aws_region)
+sqs_conn = sqs.connect_to_region(aws_region)
 
-worker.run(max_sleep=10)
+topic = SNSTopic(sns_conn, main_config['queue_name'])
+queue = SQSQueue(sqs_conn, main_config['topic_name'])
+
+p = probe.Probe(topic, queue)
+
+p.run(max_sleep=10)

@@ -1,7 +1,7 @@
 import logging
 import base64
 
-from nanomon.message import NanoMessage
+from nymms.message import NanoMessage
 
 logger = logging.getLogger(__name__)
 
