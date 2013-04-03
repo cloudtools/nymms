@@ -1,6 +1,6 @@
-===============================================================
-NYMMS (**N**ot **Y**our **M**other's **M**onitoring **S**ystem)
-===============================================================
+===========================================
+NYMMS (Not Your Mother's Monitoring System)
+===========================================
 
 NYMMS is a monitoring framework that takes inspiration from a lot of different
 places.
