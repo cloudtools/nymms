@@ -1,17 +1,9 @@
-import base64
 import json
-import Queue
 import time
 import logging
 
-from boto import sns
-from boto import sqs
-from boto.sqs.message import Message, RawMessage
-
 from nymms.config import yaml_config
-from nymms.message import NanoMessage
 from nymms.queue import QueueWorker
-from nymms.queue.backends.sns_sqs import SQSQueue, SNSTopic
 
 logger = logging.getLogger(__name__)
 
