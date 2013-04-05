@@ -1,13 +1,13 @@
 import time
 import logging
 
-from nymms.queue import QueueWorker
+from nymms.channel import Channel
 from nymms.resources import MonitoringGroup, Node, Monitor, Command
 
 logger = logging.getLogger(__name__)
 
 
-class Probe(QueueWorker):
+class Probe(Channel):
     def run(self, max_sleep=2, min_sleep=1):
         did_task = False
         max_sleep = sleep = float(max_sleep)

@@ -3,7 +3,7 @@ import time
 import logging
 
 from nymms.config import yaml_config
-from nymms.queue import QueueWorker
+from nymms.channel import Channel
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ class YamlNodeBackend(object):
         return yaml_config.load_config(self.path)
 
 
-class Scheduler(QueueWorker):
+class Scheduler(Channel):
     def __init__(self, node_backend, topic, queue):
         self.node_backend = node_backend
         super(Scheduler, self).__init__(topic, queue)

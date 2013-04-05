@@ -6,7 +6,7 @@ from nymms.message import NanoMessage
 logger = logging.getLogger(__name__)
 
 
-class QueueWorker(object):
+class Channel(object):
     def __init__(self, topic, queue):
         self.topic = topic
         self.queue = queue
