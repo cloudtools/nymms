@@ -7,7 +7,9 @@ logger = logging.getLogger(__name__)
 
 import yaml
 
-class EmptyConfig(Exception):
+from nymms import exceptions
+
+class EmptyConfig(exceptions.NymmsException):
     def __init__(self, filename):
         self.filename = filename
 

@@ -1,6 +1,8 @@
 from weakref import WeakValueDictionary
 
-class DuplicateEntryError(Exception):
+from nymms import exceptions
+
+class DuplicateEntryError(exceptions.NymmsException):
     def __init__(self, name, obj, registry):
         self.name = name
         self.obj = obj
