@@ -20,6 +20,9 @@ Requirements
 Currently the main requirements are:
 
 - Python (2.7 - may work on older versions, haven't tested)
-- boto
+- boto (It currently requires this `boto pull request`_, which is very close to
+  being accepted)
 - PyYAML (used in a few backends, will eventually not be a requirement unless
   you need to use those backends)
+
+.. _`boto pull request`: https://github.com/boto/boto/pull/1414
