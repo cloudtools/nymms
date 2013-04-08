@@ -143,12 +143,13 @@ class Node(NanoResource):
 class Monitor(NanoResource):
     context_attributes = ['name']
 
-    def __init__(self, name, command, monitoring_groups, **kwargs):
+    def __init__(self, name, command, monitoring_groups=None, **kwargs):
         self.name = name
         self.command = command
         self.monitoring_groups = WeakValueDictionary()
-        for group in monitoring_groups:
-            group.add_monitor(self)
+        if monitoring_groups:
+            for group in monitoring_groups:
+                group.add_monitor(self)
 
         super(Monitor, self).__init__(name, **kwargs)
 
