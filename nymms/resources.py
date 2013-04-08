@@ -67,9 +67,17 @@ class NanoResource(object):
 
 
 class MonitoringGroup(NanoResource):
-    def __init__(self, name, **kwargs):
+    def __init__(self, name, monitors=None, nodes=None, **kwargs):
         self.nodes = WeakValueDictionary()
         self.monitors = WeakValueDictionary()
+
+        if monitors:
+            for monitor in monitors:
+                self.add_monitor(monitor)
+        if nodes:
+            for node in nodes:
+                self.add_node(node)
+
         super(MonitoringGroup, self).__init__(name, **kwargs)
 
     def add_node(self, node):
