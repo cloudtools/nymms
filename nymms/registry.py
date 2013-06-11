@@ -1,6 +1,8 @@
-from weakref import WeakValueDictionary
+import logging
 
 from nymms import exceptions
+
+logger = logging.getLogger(__name__)
 
 class DuplicateEntryError(exceptions.NymmsException):
     def __init__(self, name, obj, registry):
@@ -13,10 +15,11 @@ class DuplicateEntryError(exceptions.NymmsException):
                 self.registry._object_type.__name__, self.name)
 
 
-class Registry(WeakValueDictionary):
+class Registry(dict):
     def __init__(self, object_type, *args, **kwargs):
+        logging.debug("New '%s' registry id: %d" % (object_type, id(self)))
         self._object_type = object_type
-        WeakValueDictionary.__init__(self, *args, **kwargs)
+        dict.__init__(self, *args, **kwargs)
 
     def __setitem__(self, name, value):
         if not isinstance(value, self._object_type):
@@ -25,4 +28,4 @@ class Registry(WeakValueDictionary):
 
         if self.has_key(name):
             raise DuplicateEntryError(name, value, self)
-        WeakValueDictionary.__setitem__(self, name, value)
+        dict.__setitem__(self, name, value)
