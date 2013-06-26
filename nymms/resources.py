@@ -11,10 +11,10 @@ RESERVED_ATTRIBUTES = ['name', 'address', 'node_monitor', 'monitoring_groups',
         'command_string']
 
 
-def load_resources(path):
+def load_resources(resource_path):
     logger.info("Loading local resources from %s." % (path))
-    path = os.path.expanduser(path)
-    path, module = os.path.split(path)
+    resource_path = os.path.expanduser(resource_path)
+    path, module = os.path.split(resource_path)
 
     if module.endswith('.py'):
         module = module[:-3]
