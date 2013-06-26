@@ -1,4 +1,6 @@
 import logging
+import os
+import imp
 from weakref import WeakValueDictionary
 
 from nymms import registry
@@ -7,6 +9,19 @@ logger = logging.getLogger(__name__)
 
 RESERVED_ATTRIBUTES = ['name', 'address', 'node_monitor', 'monitoring_groups',
         'command_string']
+
+
+def load_resources(path):
+    logger.info("Loading local resources from %s." % (path))
+    path, module = os.path.split(path)
+    try:
+        module_info = imp.find_module(module, [path])
+        local_resources = imp.load_module('local_resources', *module_info)
+    finally:
+        if module_info[0]:
+            module_info[0].close()
+    return local_resources
+
 
 class RegistryMetaClass(type):
     """ Creates a registry of all objects of a classes type.
@@ -25,6 +40,7 @@ class RegistryMetaClass(type):
                 dct)
         new_class.registry = registry.Registry(new_class)
         return new_class
+
 
 class NanoResource(object):
     __metaclass__ = RegistryMetaClass
@@ -118,25 +134,13 @@ class Node(NanoResource):
 
     def build_context(self, monitoring_group, monitor):
         context = {}
-        for obj in (monitor.command, monitoring_group, self, monitor):
+        for obj in (monitoring_group, self, monitor):
             c = obj._context()
             context.update(c)
             for k, v in c.values()[0].iteritems():
                 if not k == 'name':
                     context[k] = v
         return context
-
-    def execute_monitors(self):
-        results = []
-        for group_name, group in self.monitoring_groups.iteritems():
-            for monitor_name, monitor in group.monitors.iteritems():
-                results.append(monitor.execute(
-                        self.build_context(group, monitor)))
-        return results
-
-    def generate_command(self, monitoring_group, monitor):
-        context = self.build_context(monitoring_group, monitor)
-        return monitor.command.command_string.format(**context)
 
     @property
     def tasks(self):
@@ -164,13 +168,23 @@ class Monitor(NanoResource):
     def execute(self, context):
         return self.command.execute(context)
 
+    def format_command(self, context):
+        self.command.format_command(context)
+
 
 class Command(NanoResource):
-    context_attributes = ['name', 'command_string']
+    context_attributes = ['name', 'command_type', 'command_string']
 
-    def __init__(self, name, command_string, **kwargs):
+    def __init__(self, name, command_string, command_type='nagios', **kwargs):
+        self.command_type = command_type
         self.command_string = command_string
         super(Command, self).__init__(name, **kwargs)
 
-    def execute(self, context):
-        return self.command_string.format(**context)
+    def format_command(self, context):
+        my_context = self._context()
+        local_context = context.copy()
+        local_context.update(my_context)
+        for k, v in my_context.values()[0].iteritems():
+            if not k == 'name' and not k in local_context:
+                local_context[k] = v
+        return self.command_string.format(**local_context)
