@@ -14,6 +14,10 @@ RESERVED_ATTRIBUTES = ['name', 'address', 'node_monitor', 'monitoring_groups',
 def load_resources(path):
     logger.info("Loading local resources from %s." % (path))
     path, module = os.path.split(path)
+
+    if module.endswith('.py'):
+        module = module[:-3]
+
     try:
         module_info = imp.find_module(module, [path])
         local_resources = imp.load_module('local_resources', *module_info)
