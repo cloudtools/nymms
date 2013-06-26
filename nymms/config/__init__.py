@@ -1,5 +1,8 @@
 import imp
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 from nymms.exceptions import NymmsException
 
@@ -24,4 +27,5 @@ try:
 except ImportError:
     raise FileNotFound(config_path)
 
+logger.debug("Loading config from path: %s" % (config_path))
 settings = imp.load_module('settings', *module_info)
