@@ -133,7 +133,12 @@ class Node(NanoResource):
                 if isinstance(group, MonitoringGroup):
                     g = group
                 else:
-                    g = MonitoringGroup.registry[group]
+                    try:
+                        g = MonitoringGroup.registry[group]
+                    except KeyError:
+                        logger.error("Unable to find MonitoringGroup '%s' "
+                                "in registry, exiting." % (group))
+                        raise
                 g.add_node(self)
 
         super(Node, self).__init__(name, **kwargs)
