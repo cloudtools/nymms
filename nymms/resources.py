@@ -1,18 +1,22 @@
 import logging
 import os
 import imp
+import copy
 from weakref import WeakValueDictionary
 
 from nymms import registry
+from nymms.utils import commands
 
 logger = logging.getLogger(__name__)
+
+from nymms.config import settings
 
 RESERVED_ATTRIBUTES = ['name', 'address', 'node_monitor', 'monitoring_groups',
         'command_string']
 
 
 def load_resources(resource_path):
-    logger.info("Loading local resources from %s." % (path))
+    logger.info("Loading local resources from %s." % (resource_path))
     resource_path = os.path.expanduser(resource_path)
     path, module = os.path.split(resource_path)
 
@@ -126,7 +130,12 @@ class Node(NanoResource):
         self._tasks = []
         if monitoring_groups:
             for group in monitoring_groups:
-                group.add_node(self)
+                if isinstance(group, MonitoringGroup):
+                    g = group
+                else:
+                    g = MonitoringGroup.registry[group]
+                g.add_node(self)
+
         super(Node, self).__init__(name, **kwargs)
 
     def monitors(self):
@@ -170,11 +179,11 @@ class Monitor(NanoResource):
 
         super(Monitor, self).__init__(name, **kwargs)
 
-    def execute(self, context):
-        return self.command.execute(context)
+    def execute(self, context, timeout=settings.monitor_timeout):
+        return self.command.execute(context, timeout)
 
     def format_command(self, context):
-        self.command.format_command(context)
+        return self.command.format_command(context)
 
 
 class Command(NanoResource):
@@ -187,9 +196,11 @@ class Command(NanoResource):
 
     def format_command(self, context):
         my_context = self._context()
-        local_context = context.copy()
+        local_context = copy.deepcopy(context)
         local_context.update(my_context)
         for k, v in my_context.values()[0].iteritems():
             if not k == 'name' and not k in local_context:
                 local_context[k] = v
         return self.command_string.format(**local_context)
+
+    def execute(self, context, timeout=settings.monitor_timeout):
