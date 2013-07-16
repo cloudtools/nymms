@@ -2,6 +2,7 @@ import glob
 import os
 import sys
 import logging
+import hashlib
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,7 @@ def load_config(config_file):
     stack = []
     root = os.path.split(os.path.abspath(config_file))[0]
     def recursive_preprocess(filename):
+        filename = os.path.expanduser(filename)
         stack.append(os.path.abspath(filename))
         c = []
 
@@ -79,4 +81,6 @@ def load_config(config_file):
     config = recursive_preprocess(config_file)
     if not config:
         raise EmptyConfig(config_file)
-    return yaml.safe_load(os.linesep.join(config))
+    config = os.linesep.join(config)
+    version = hashlib.sha512(config).hexdigest()
+    return (version, yaml.safe_load(config))
