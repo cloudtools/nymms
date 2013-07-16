@@ -222,6 +222,17 @@ class Command(NanoResource):
         pass
 
 
+def load_resource(resources, resource_class):
+    """ Given a dictionary of a given resource_type, instantiate them.
+
+    The resources are loaded into the given resource registry.
+    """
+    for name, kwargs in resources.items():
+        if not kwargs:
+            kwargs = {}
+        resource_class(name, **kwargs)
+
+
 def load_resources(resource_file):
     """ Loads resources in yaml formatted resource_file in the proper order.
     
@@ -237,10 +248,20 @@ def load_resources(resource_file):
     logger.info("Loading local resources from %s." % (resource_file))
     version, resources = yaml_config.load_config(resource_file)
 
-    for resource_type, obj in LOAD_ORDER:
+    for resource_type, resource_class in LOAD_ORDER:
         items = resources[resource_type]
-        for name, kwargs in items.items():
-            if not kwargs:
-                kwargs = {}
-            obj(name, **kwargs)
+        load_resource(items, resource_class)
+    return version
+
+
+def load_nodes(node_file):
+    """ Loads nodes from a yaml formatted file.
+
+    Nodes are stored in the Node registry.
+    """
+    logger.info("Loading nodes from %s." % (node_file))
+    version, nodes = yaml_config.load_config(node_file)
+
+    items = nodes['nodes']
+    load_resource(items, Node)
     return version
