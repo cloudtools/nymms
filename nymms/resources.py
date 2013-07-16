@@ -2,34 +2,17 @@ import logging
 import os
 import imp
 import copy
+import hashlib
 from weakref import WeakValueDictionary
 
 from nymms import registry
 from nymms.utils import commands
+from nymms.config import yaml_config
 
 logger = logging.getLogger(__name__)
 
-from nymms.config import settings
-
 RESERVED_ATTRIBUTES = ['name', 'address', 'node_monitor', 'monitoring_groups',
         'command_string']
-
-
-def load_resources(resource_path):
-    logger.info("Loading local resources from %s." % (resource_path))
-    resource_path = os.path.expanduser(resource_path)
-    path, module = os.path.split(resource_path)
-
-    if module.endswith('.py'):
-        module = module[:-3]
-
-    try:
-        module_info = imp.find_module(module, [path])
-        local_resources = imp.load_module('local_resources', *module_info)
-    finally:
-        if module_info[0]:
-            module_info[0].close()
-    return local_resources
 
 
 class RegistryMetaClass(type):
@@ -96,6 +79,8 @@ class MonitoringGroup(NanoResource):
         self.nodes = WeakValueDictionary()
         self.monitors = WeakValueDictionary()
 
+        super(MonitoringGroup, self).__init__(name, **kwargs)
+
         if monitors:
             for monitor in monitors:
                 self.add_monitor(monitor)
@@ -103,15 +88,25 @@ class MonitoringGroup(NanoResource):
             for node in nodes:
                 self.add_node(node)
 
-        super(MonitoringGroup, self).__init__(name, **kwargs)
-
     def add_node(self, node):
+        if not isinstance(node, Node):
+            try:
+                monitor = Node.registry[node]
+            except KeyError:
+                logger.error("Unable to find Node '%s' in registry." % (
+                    node))
         logger.debug("Adding node '%s' to monitoring group '%s'." % (node.name,
             self.name))
         self.nodes[node.name] = node
         node.monitoring_groups[self.name] = self
 
     def add_monitor(self, monitor):
+        if not isinstance(monitor, Monitor):
+            try:
+                monitor = Monitor.registry[monitor]
+            except KeyError:
+                logger.error("Unable to find Monitor '%s' in registry." % (
+                    monitor))
         logger.debug("Adding monitor '%s' to monitoring group '%s'." % (
             monitor.name, self.name))
         self.monitors[monitor.name] = monitor
@@ -130,16 +125,14 @@ class Node(NanoResource):
         self._tasks = []
         if monitoring_groups:
             for group in monitoring_groups:
-                if isinstance(group, MonitoringGroup):
-                    g = group
-                else:
+                if not isinstance(group, MonitoringGroup):
                     try:
-                        g = MonitoringGroup.registry[group]
+                        group = MonitoringGroup.registry[group]
                     except KeyError:
                         logger.error("Unable to find MonitoringGroup '%s' "
                                 "in registry, exiting." % (group))
                         raise
-                g.add_node(self)
+                group.add_node(self)
 
         super(Node, self).__init__(name, **kwargs)
 
@@ -176,15 +169,32 @@ class Monitor(NanoResource):
 
     def __init__(self, name, command, monitoring_groups=None, **kwargs):
         self.name = name
+        if not isinstance(command, Command):
+            try:
+                command = Command.registry[command]
+            except KeyError:
+                logger.error("Unable to find Command '%s' in registry." % (
+                    command))
+                raise
+        self.command = command
+
+
         self.command = command
         self.monitoring_groups = WeakValueDictionary()
         if monitoring_groups:
             for group in monitoring_groups:
+                if not isinstance(group, MonitoringGroup):
+                    try:
+                        group = MonitoringGroup.registry[group]
+                    except KeyError:
+                        logger.error("Unable to find MonitoringGroup '%s' in "
+                                "registry." % (group))
+                        raise
                 group.add_monitor(self)
 
         super(Monitor, self).__init__(name, **kwargs)
 
-    def execute(self, context, timeout=settings.monitor_timeout):
+    def execute(self, context, timeout):
         return self.command.execute(context, timeout)
 
     def format_command(self, context):
@@ -208,4 +218,29 @@ class Command(NanoResource):
                 local_context[k] = v
         return self.command_string.format(**local_context)
 
-    def execute(self, context, timeout=settings.monitor_timeout):
+    def execute(self, context, timeout):
+        pass
+
+
+def load_resources(resource_file):
+    """ Loads resources in yaml formatted resource_file in the proper order.
+    
+    Returns a sha512 hash of the resources.  The resources themselves are
+    stored in their individual registries.
+    """
+    LOAD_ORDER = [
+            ('commands', Command),
+            ('monitoring_groups', MonitoringGroup),
+            ('monitors', Monitor),
+    ]
+
+    logger.info("Loading local resources from %s." % (resource_file))
+    version, resources = yaml_config.load_config(resource_file)
+
+    for resource_type, obj in LOAD_ORDER:
+        items = resources[resource_type]
+        for name, kwargs in items.items():
+            if not kwargs:
+                kwargs = {}
+            obj(name, **kwargs)
+    return version
