@@ -67,7 +67,7 @@ def load_config(config_file):
                                             filename, lineno))
                             continue
                         if os.path.isfile(f):
-                            logger.info("Parsing include (%s:%d): %s" % (
+                            logger.debug("Parsing include (%s:%d): %s" % (
                                     filename, lineno, f))
                             c.extend(recursive_preprocess(f))
                         else:
@@ -77,7 +77,7 @@ def load_config(config_file):
                     continue
                 c.append(line)
         return c
-    logger.info("Loading config file: %s" % (config_file))
+    logger.debug("Loading config file: %s" % (config_file))
     config = recursive_preprocess(config_file)
     if not config:
         raise EmptyConfig(config_file)
