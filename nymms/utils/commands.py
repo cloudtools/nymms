@@ -4,7 +4,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class CommandTimeout(Exception):
+class CommandException(Exception):
+    pass
+
+class CommandTimeout(CommandException):
     def __init__(self, command, timeout):
         self.command = command
         self.timeout = timeout
@@ -14,7 +17,7 @@ class CommandTimeout(Exception):
                 self.command, self.timeout)
 
 
-class CommandFailure(Exception):
+class CommandFailure(CommandException):
     def __init__(self, command, return_code, stdout, stderr):
         self.command = command
         self.return_code = return_code
@@ -23,7 +26,7 @@ class CommandFailure(Exception):
 
     def __str__(self):
         return "Command '%s' exited with a return code of %d." % (
-                self.return_code,)
+                self.command, self.return_code,)
 
 
 def execute(command_string, timeout=None):
@@ -49,7 +52,12 @@ def execute(command_string, timeout=None):
     logger.debug("    %s" % (command_string))
     command_object = subprocess.Popen(command_string, shell=True,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    (stdout, stderr) = command_object.communicate()
+    try:
+        (stdout, stderr) = command_object.communicate()
+    except CommandTimeout, e:
+        logger.error("Command timed out, terminating child command.")
+        command_object.terminate()
+        raise
     if not command_object.returncode == 0:
         signal.alarm(0)
         logger.error("Command '%s' failed with return code %d:" % (
