@@ -1,42 +1,22 @@
 #!/usr/bin/env python
 
-import argparse
-import sys
-import imp
+import logutil
+import os
+from boto.sqs import connect_to_region
 
-from nymms.utils import logutil
-from nymms.config import yaml_config
-from nymms import probe
-from nymms.queue.backends.sns_sqs import SNSTopic, SQSQueue
-
-from boto import sns
-from boto import sqs
-
-parser = argparse.ArgumentParser(description='nymms monitor probe daemon')
-parser.add_argument('-c', '--config', dest='config', default='config.yaml',
-        help="Path to the config file.  Default: %(default)s")
-
-arg_manager = parser.parse_args()
-
-logger = logutil.setup_logging(tag_name='worker', verbose=True, stdout=True,
-        syslog=False)
+logger = logutil.setup_root_logger(stdout=logutil.INFO,
+        filename='/tmp/nymms-probe-%d.log' % (os.getpid()),
+        file_level=logutil.DEBUG)
 logutil.quiet_boto_logging()
 
-try:
-    main_config = yaml_config.load_config(arg_manager.config)
-except yaml_config.EmptyConfig, e:
-    logger.critical("Unable to load a valid config.  Exiting.")
-    sys.exit(1)
+os.environ.setdefault('NYMMS_CONFIG', '~/git/nymms/conf/config.yaml')
+from nymms.config import config
 
-probe_config = main_config.get('probe', {})
+from nymms.resources import (MonitoringGroup, Monitor, Command, Node,
+        load_resources)
+from nymms.probe.sqsprobe import SQSProbe
 
-aws_region = main_config['queue_region']
-sns_conn = sns.connect_to_region(aws_region)
-sqs_conn = sqs.connect_to_region(aws_region)
-
-topic = SNSTopic(sns_conn, main_config['queue_name'])
-queue = SQSQueue(sqs_conn, main_config['topic_name'])
-
-p = probe.Probe(topic, queue)
-
-p.run(max_sleep=10)
+resource_version = load_resources(config.settings['resources'])
+conn = connect_to_region(config.settings['queue_region'])
+p = SQSProbe(conn, config.settings['tasks']['name'])
+p.run()
