@@ -1,0 +1,6 @@
+base:
+  - 1
+  - 2
+  - 3
+!include relative_includes.yaml
+!include included_yaml/*.yaml
