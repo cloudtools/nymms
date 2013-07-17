@@ -1,50 +1,90 @@
 import time
 import logging
+import pprint
+import os
+import json
+
+from boto.sqs.message import Message
 
 from nymms.channel import Channel
 from nymms.resources import MonitoringGroup, Node, Monitor, Command
+from nymms.utils import commands
 
 logger = logging.getLogger(__name__)
 
+from nymms.config import config
 
-class Probe(Channel):
-    def run(self, max_sleep=2, min_sleep=1):
-        did_task = False
-        max_sleep = sleep = float(max_sleep)
+class SQSProbe(object):
+    def __init__(self, connection, queue_name):
+        self.connection = connection
+        self.queue_name = queue_name
+        self.tasks_received = 0
+        self.get_queue()
+
+    def get_queue(self):
         while True:
-            last_did_task = did_task
-            did_task = self.perform_task()
-            if not did_task:
-                if not last_did_task:
-                    sleep = sleep - 1
-                if sleep <= 0:
-                    sleep = min_sleep
-                logger.debug("Sleeping for %.02f." % (sleep))
-                time.sleep(sleep)
+            logger.debug("Attaching to queue '%s'." % (self.queue_name))
+            self.queue = self.connection.get_queue(self.queue_name)
+            if self.queue:
+                logger.debug('Attached to queue.')
+                break
+            logger.debug('Unable to attach to queue.  Sleeping before retry.')
+            time.sleep(2)
+
+    def get_task(self, wait_time=config.settings['probe']['queue_wait_time'],
+            timeout=config.settings['monitor_timeout'] + 3):
+        if not self.queue:
+            logger.warning('Not attached to queue.')
+            self.get_queue()
+        logger.debug("Getting task from queue '%s'" % (self.queue_name))
+        task = self.queue.read(visibility_timeout=timeout,
+                wait_time_seconds=wait_time)
+        return task
+
+    def resubmit_task(self, task):
+        task['_attempt'] += 1
+        m = Message()
+        m.set_body(json.dumps(task))
+        return self.queue.write(m)
+
+    def submit_result(self, result, task):
+        logger.debug("Submitting '%s' result for task %s(%s)." % (result,
+            task['_url'], task['_uuid']))
+        return
+
+    def handle_task(self, task, timeout=config.settings['monitor_timeout']):
+        task_data = json.loads(task.get_body())
+        attempt = task_data['_attempt']
+        monitor_name = task_data['monitor']['name']
+        monitor = Monitor.registry[task_data['monitor']['name']]
+        logger.debug("Executing %s(%s) attempt %d: %s" % (
+            task_data['_url'], task_data['_uuid'], task_data['_attempt'],
+            monitor.format_command(task_data)))
+        try:
+            monitor.execute(task_data, timeout)
+            result = "SUCCESS"
+        except commands.CommandException, e:
+            logger.error(str(e))
+            if attempt <= 3:
+                result = "SOFT FAIL"
+                logger.error("Resubmitting task %s." % (task_data['_url'],))
+                self.resubmit_task(task_data)
             else:
-                sleep = max_sleep
+                result = "HARD FAIL"
+                logger.error("Retry limit hit, not resubmitting.")
+        self.submit_result(result, task_data)
+        logger.debug('Deleting task.')
 
-    def task_handler(self, task):
-        logger.debug("Handling task: %s" % (task.task))
-        group_objects = []
-        node_name = task.task['name']
-        monitoring_groups = task.task['monitoring_groups']
-        for group in monitoring_groups:
-            try:
-                group_objects.append(MonitoringGroup.registry[group])
-            except KeyError:
-                logger.warning("Monitoring group '%s' not found in registry "
-                        "for node '%s'. Skipping." % (group, node_name))
+    def run(self):
+        while True:
+            if not self.tasks_received % 10:
+                logger.info('Tasks received: %d' % (self.tasks_received))
+            logger.debug("Queue depth: %d" % (self.queue.count()))
+            task = self.get_task(
+                    wait_time=config.settings['probe']['queue_wait_time'])
+            if not task:
+                logger.debug("Queue '%s' empty." % (self.queue_name))
                 continue
-        node = Node.registry.get(node_name,
-                Node(node_name, monitoring_groups=group_objects))
-        logger.debug("Executing monitors for node %s:" % (node_name))
-        logger.debug(node.execute_monitors())
-        return True
-
-    def handle_task_result(self, task, result):
-        if result:
-            logger.debug("Deleting task: %s" % (task.task))
+            self.tasks_received += 1
+            self.handle_task(task)
             task.delete()
-
-
