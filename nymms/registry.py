@@ -4,6 +4,7 @@ from nymms import exceptions
 
 logger = logging.getLogger(__name__)
 
+
 class DuplicateEntryError(exceptions.NymmsException):
     def __init__(self, name, obj, registry):
         self.name = name
@@ -26,6 +27,6 @@ class Registry(dict):
             raise TypeError("This registry only accepts objects of type %s." %
                     (self._object_type.__name__))
 
-        if self.has_key(name):
+        if name in self:
             raise DuplicateEntryError(name, value, self)
         dict.__setitem__(self, name, value)

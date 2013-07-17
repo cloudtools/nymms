@@ -1,6 +1,5 @@
 import glob
 import os
-import sys
 import logging
 import hashlib
 
@@ -9,7 +8,7 @@ logger = logging.getLogger(__name__)
 import yaml
 
 from nymms import exceptions
-from nymms.utils import logutil
+
 
 class EmptyConfig(exceptions.NymmsException):
     def __init__(self, filename):
@@ -38,6 +37,7 @@ def open_config_file(config_file):
 def load_config(config_file):
     stack = []
     root = os.path.split(os.path.abspath(os.path.expanduser(config_file)))[0]
+
     def recursive_preprocess(filename):
         filename = os.path.expanduser(filename)
         stack.append(os.path.abspath(filename))

@@ -1,8 +1,5 @@
 import logging
-import os
-import imp
 import copy
-import hashlib
 from weakref import WeakValueDictionary
 
 from nymms import registry
@@ -37,7 +34,7 @@ class RegistryMetaClass(type):
 class NanoResource(object):
     __metaclass__ = RegistryMetaClass
 
-    context_attributes = ['name',]
+    context_attributes = ['name']
 
     def __init__(self, name, **kwargs):
         self.name = name
@@ -178,7 +175,6 @@ class Monitor(NanoResource):
                 raise
         self.command = command
 
-
         self.command = command
         self.monitoring_groups = WeakValueDictionary()
         if monitoring_groups:
@@ -223,7 +219,6 @@ class Command(NanoResource):
         return commands.execute(cmd, timeout)
 
 
-
 def load_resource(resources, resource_class, reset=False):
     """ Given a dictionary of a given resource_type, instantiate them.
 
@@ -242,7 +237,7 @@ def load_resource(resources, resource_class, reset=False):
 
 def load_resources(resource_file, reset=False):
     """ Loads resources in yaml formatted resource_file in the proper order.
-    
+
     Returns a sha512 hash of the resources.  The resources themselves are
     stored in their individual registries.
     """

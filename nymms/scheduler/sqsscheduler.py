@@ -1,7 +1,4 @@
 import logging
-import imp
-import os
-import copy
 import time
 import json
 import uuid
@@ -9,7 +6,6 @@ import uuid
 from boto.sqs.message import Message
 
 from nymms import resources
-from nymms.registry import DuplicateEntryError
 
 logger = logging.getLogger(__name__)
 

@@ -14,6 +14,7 @@ config_path = os.path.expanduser(os.environ.get('NYMMS_CONFIG',
 settings = copy.deepcopy(DEFAULTS)
 version = None
 
+
 def reload_config():
     """ Used to manually reload the config.
     """

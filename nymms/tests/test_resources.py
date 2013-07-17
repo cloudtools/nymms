@@ -3,6 +3,7 @@ from weakref import WeakValueDictionary
 
 from nymms import resources
 
+
 class TestNanoResources(unittest.TestCase):
     def test_reserved_attributes(self):
         with self.assertRaises(TypeError):

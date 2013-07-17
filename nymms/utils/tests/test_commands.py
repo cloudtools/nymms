@@ -2,6 +2,7 @@ import unittest
 
 from nymms.utils import commands
 
+
 class TestCommands(unittest.TestCase):
     def test_execute_failure(self):
         with self.assertRaises(commands.CommandFailure):

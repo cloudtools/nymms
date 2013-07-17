@@ -4,8 +4,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class CommandException(Exception):
     pass
+
 
 class CommandTimeout(CommandException):
     def __init__(self, command, timeout):

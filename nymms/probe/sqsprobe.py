@@ -1,18 +1,16 @@
 import time
 import logging
-import pprint
-import os
 import json
 
 from boto.sqs.message import Message
 
-from nymms.channel import Channel
-from nymms.resources import MonitoringGroup, Node, Monitor, Command
+from nymms.resources import Monitor
 from nymms.utils import commands
 
 logger = logging.getLogger(__name__)
 
 from nymms.config import config
+
 
 class SQSProbe(object):
     def __init__(self, connection, queue_name):

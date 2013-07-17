@@ -4,6 +4,7 @@ from nymms import registry
 from nymms.resources import Command, MonitoringGroup
 from weakref import WeakValueDictionary
 
+
 class TestRegistry(unittest.TestCase):
     def tearDown(self):
         # Ensure we have a fresh registry after every test
