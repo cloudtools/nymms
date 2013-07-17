@@ -219,21 +219,28 @@ class Command(NanoResource):
         return self.command_string.format(**local_context)
 
     def execute(self, context, timeout):
-        pass
+        cmd = self.format_command(context)
+        return commands.execute(cmd, timeout)
 
 
-def load_resource(resources, resource_class):
+
+def load_resource(resources, resource_class, reset=False):
     """ Given a dictionary of a given resource_type, instantiate them.
 
     The resources are loaded into the given resource registry.
     """
+    if reset:
+        logger.debug("Clearing old %s entries from registry." % (
+            resource_class.__name__))
+        resource_class.registry.clear()
+
     for name, kwargs in resources.items():
         if not kwargs:
             kwargs = {}
         resource_class(name, **kwargs)
 
 
-def load_resources(resource_file):
+def load_resources(resource_file, reset=False):
     """ Loads resources in yaml formatted resource_file in the proper order.
     
     Returns a sha512 hash of the resources.  The resources themselves are
@@ -250,11 +257,11 @@ def load_resources(resource_file):
 
     for resource_type, resource_class in LOAD_ORDER:
         items = resources[resource_type]
-        load_resource(items, resource_class)
+        load_resource(items, resource_class, reset=reset)
     return version
 
 
-def load_nodes(node_file):
+def load_nodes(node_file, reset=False):
     """ Loads nodes from a yaml formatted file.
 
     Nodes are stored in the Node registry.
@@ -263,5 +270,5 @@ def load_nodes(node_file):
     version, nodes = yaml_config.load_config(node_file)
 
     items = nodes['nodes']
-    load_resource(items, Node)
+    load_resource(items, Node, reset=reset)
     return version
