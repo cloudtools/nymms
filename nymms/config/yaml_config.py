@@ -51,13 +51,9 @@ def load_config(config_file):
                     # if the include doesn't have a fully qualified path then
                     # assume the relative path is based off the directory of
                     # the initial config file
-                    print path
-                    print root
                     if not path.startswith('/'):
                         path = os.path.join(root, path)
-                    print path
                     files = glob.glob(path)
-                    print files
                     if not files:
                         logger.warning("Include statement '%s' at %s:%d did "
                                 "not match any files.  Skipping." % (line,
