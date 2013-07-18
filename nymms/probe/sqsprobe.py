@@ -41,6 +41,8 @@ class SQSProbe(object):
 
     def resubmit_task(self, task, delay):
         task['_attempt'] += 1
+        logger.debug("Resubmitting task %s with %d second delay." % (
+            task['_url'], delay))
         m = Message()
         m.set_body(json.dumps(task))
         return self.queue.write(m, delay_seconds=delay)
@@ -53,7 +55,6 @@ class SQSProbe(object):
     def handle_task(self, task, timeout=config.settings['monitor_timeout']):
         task_data = json.loads(task.get_body())
         attempt = task_data['_attempt']
-        monitor_name = task_data['monitor']['name']
         monitor = Monitor.registry[task_data['monitor']['name']]
         logger.debug("Executing %s attempt %d: %s" % (
             task_data['_url'], task_data['_attempt'],
@@ -65,7 +66,6 @@ class SQSProbe(object):
             logger.debug(str(e))
             if attempt <= 3:
                 result = "SOFT FAIL"
-                logger.debug("Resubmitting task %s." % (task_data['_url'],))
                 self.resubmit_task(task_data,
                         config.settings['probe']['retry_delay'])
             else:
