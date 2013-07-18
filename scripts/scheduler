@@ -19,7 +19,7 @@ from nymms.scheduler.sqsscheduler import SQSScheduler, YamlNodeBackend
 
 resource_version = load_resources(config.settings['resources'])
 
-be = YamlNodeBackend(config.settings['scheduler']['nodes'])
+be = YamlNodeBackend(config.settings['nodes'])
 
 conn = connect_to_region(config.settings['queue_region'])
 
