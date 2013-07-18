@@ -32,22 +32,22 @@ class SQSProbe(object):
     def get_task(self, wait_time=config.settings['probe']['queue_wait_time'],
             timeout=config.settings['monitor_timeout'] + 3):
         if not self.queue:
-            logger.warning('Not attached to queue.')
+            logger.debug('Not attached to queue.')
             self.get_queue()
         logger.debug("Getting task from queue '%s'" % (self.queue_name))
         task = self.queue.read(visibility_timeout=timeout,
                 wait_time_seconds=wait_time)
         return task
 
-    def resubmit_task(self, task):
+    def resubmit_task(self, task, delay):
         task['_attempt'] += 1
         m = Message()
         m.set_body(json.dumps(task))
-        return self.queue.write(m)
+        return self.queue.write(m, delay_seconds=delay)
 
     def submit_result(self, result, task):
-        logger.debug("Submitting '%s' result for task %s(%s)." % (result,
-            task['_url'], task['_uuid']))
+        logger.debug("Submitting '%s' result for task %s." % (result,
+            task['_url']))
         return
 
     def handle_task(self, task, timeout=config.settings['monitor_timeout']):
@@ -55,21 +55,22 @@ class SQSProbe(object):
         attempt = task_data['_attempt']
         monitor_name = task_data['monitor']['name']
         monitor = Monitor.registry[task_data['monitor']['name']]
-        logger.debug("Executing %s(%s) attempt %d: %s" % (
-            task_data['_url'], task_data['_uuid'], task_data['_attempt'],
+        logger.debug("Executing %s attempt %d: %s" % (
+            task_data['_url'], task_data['_attempt'],
             monitor.format_command(task_data)))
         try:
             monitor.execute(task_data, timeout)
             result = "SUCCESS"
         except commands.CommandException, e:
-            logger.error(str(e))
+            logger.debug(str(e))
             if attempt <= 3:
                 result = "SOFT FAIL"
-                logger.error("Resubmitting task %s." % (task_data['_url'],))
-                self.resubmit_task(task_data)
+                logger.debug("Resubmitting task %s." % (task_data['_url'],))
+                self.resubmit_task(task_data,
+                        config.settings['probe']['retry_delay'])
             else:
                 result = "HARD FAIL"
-                logger.error("Retry limit hit, not resubmitting.")
+                logger.debug("Retry limit hit, not resubmitting.")
         self.submit_result(result, task_data)
         logger.debug('Deleting task.')
 
