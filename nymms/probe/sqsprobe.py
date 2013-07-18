@@ -30,13 +30,13 @@ class SQSProbe(object):
             time.sleep(2)
 
     def get_task(self, wait_time=config.settings['probe']['queue_wait_time'],
-            timeout=config.settings['monitor_timeout'] + 3):
+                 timeout=config.settings['monitor_timeout'] + 3):
         if not self.queue:
             logger.debug('Not attached to queue.')
             self.get_queue()
         logger.debug("Getting task from queue '%s'" % (self.queue_name))
         task = self.queue.read(visibility_timeout=timeout,
-                wait_time_seconds=wait_time)
+                               wait_time_seconds=wait_time)
         return task
 
     def resubmit_task(self, task, delay):
@@ -49,7 +49,7 @@ class SQSProbe(object):
 
     def submit_result(self, result, task):
         logger.debug("Submitting '%s' result for task %s." % (result,
-            task['_url']))
+                     task['_url']))
         return
 
     def handle_task(self, task, timeout=config.settings['monitor_timeout']):
@@ -59,15 +59,18 @@ class SQSProbe(object):
         logger.debug("Executing %s attempt %d: %s" % (
             task_data['_url'], task_data['_attempt'],
             monitor.format_command(task_data)))
+        task_start = time.time()
         try:
             monitor.execute(task_data, timeout)
             result = "SUCCESS"
         except commands.CommandException, e:
+            task_run_time = time.time() - task_start
             logger.debug(str(e))
-            if attempt <= 3:
+            if attempt <= config.settings['probe']['retry_attempts']:
                 result = "SOFT FAIL"
-                self.resubmit_task(task_data,
-                        config.settings['probe']['retry_delay'])
+                delay = max(config.settings['probe']['retry_delay'] -
+                            task_run_time, 0)
+                self.resubmit_task(task_data, delay)
             else:
                 result = "HARD FAIL"
                 logger.debug("Retry limit hit, not resubmitting.")
@@ -80,7 +83,7 @@ class SQSProbe(object):
                 logger.info('Tasks received: %d' % (self.tasks_received))
             logger.debug("Queue depth: %d" % (self.queue.count()))
             task = self.get_task(
-                    wait_time=config.settings['probe']['queue_wait_time'])
+                wait_time=config.settings['probe']['queue_wait_time'])
             if not task:
                 logger.debug("Queue '%s' empty." % (self.queue_name))
                 continue
