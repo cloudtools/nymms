@@ -1,11 +1,11 @@
 import logging
 import time
 import json
-import uuid
 
 from boto.sqs.message import Message
 
 from nymms import resources
+from nymms.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -40,13 +40,9 @@ class SQSScheduler(object):
         url = "nymms://{address}/{monitor[name]}/"
         return url.format(**task) + "?timestamp=%f" % (time.time())
 
-    def task_uuid(self, url):
-        _uuid = uuid.uuid5(uuid.NAMESPACE_URL, url)
-        logger.debug("Task %s uuid %s" % (url, _uuid))
-        return _uuid
-
     def run(self):
         while True:
+            start = time.time()
             logger.info("Tasks sent: %d" % (self.tasks_sent))
             pass_count = 0
             tasks = self.get_tasks()
@@ -60,15 +56,18 @@ class SQSScheduler(object):
                     except IndexError:
                         del(tasks[node])
                         continue
-                    # Give task a unique UUID
                     url = self.task_url(task)
                     task['_url'] = url
-                    task['_uuid'] = self.task_uuid(url).hex
                     task['_attempt'] = 0
                     self.send_task(task, pass_count * 5)
                     self.tasks_sent += 1
                 pass_count += 1
-            time.sleep(10)
+            run_time = time.time() - start
+            logger.debug("Scheduler iteration took %d seconds." % (run_time,))
+            sleep_time = (config.settings['scheduler']['interval'] -
+                          max(run_time, 0))
+            logger.debug("Scheduler sleeping for %d seconds." % (sleep_time,))
+            time.sleep(sleep_time)
 
 
 class YamlNodeBackend(object):
