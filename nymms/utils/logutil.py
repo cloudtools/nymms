@@ -111,7 +111,7 @@ def setup_root_logger(stdout=INFO, filename=None, file_level=INFO,
         called, and use that.
         Default: None
     """
-    base_format = ('%(levelname)s %(name)s %(module)s(%(funcName)s):%(lineno)d'
+    base_format = ('%(levelname)s %(name)s(%(funcName)s):%(lineno)d'
             ' - %(message)s')
     timed_format = '[%(asctime)s] ' + base_format
     timed_formatter = logging.Formatter(timed_format,
