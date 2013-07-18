@@ -40,7 +40,7 @@ def execute(command_string, timeout=None):
     """
     def handle_sigalrm(signum, frame):
         if signum == signal.SIGALRM:
-            logger.error("Command '%s' timed out after %d seconds." % (
+            logger.debug("Command '%s' timed out after %d seconds." % (
                 command_string, timeout))
             raise CommandTimeout(command_string, timeout)
     signal.signal(signal.SIGALRM, handle_sigalrm)
@@ -57,17 +57,17 @@ def execute(command_string, timeout=None):
     try:
         (stdout, stderr) = command_object.communicate()
     except CommandTimeout, e:
-        logger.error("Command timed out, terminating child command.")
+        logger.debug("Command timed out, terminating child command.")
         command_object.terminate()
         raise
     if not command_object.returncode == 0:
         signal.alarm(0)
-        logger.error("Command '%s' failed with return code %d:" % (
+        logger.debug("Command '%s' failed with return code %d:" % (
                 command_string, command_object.returncode))
         for line in stdout.split('\n'):
-            logger.error("    stdout: %s" % (line))
+            logger.debug("    stdout: %s" % (line))
         for line in stderr.split('\n'):
-            logger.error("    stderr: %s" % (line))
+            logger.debug("    stderr: %s" % (line))
         raise CommandFailure(command_string, command_object.returncode,
                 stdout, stderr)
     signal.alarm(0)
