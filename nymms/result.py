@@ -31,11 +31,12 @@ class InvalidState(Exception):
 
 
 class TaskResult(object):
-    def __init__(self, task_url, status, state, data):
+    def __init__(self, task_url, status, state, output, task_data):
         self.task_url = task_url
         self.status = self.validate_status(status)
         self.state = self.validate_state(state)
-        self.data = data
+        self.output = output
+        self.task_data = task_data
         self.cleaned = {}
 
     def __str__(self):
