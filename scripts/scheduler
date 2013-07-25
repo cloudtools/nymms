@@ -4,14 +4,14 @@ import os
 
 from boto.sqs import connect_to_region
 
-import logutil
+from nymms.utils import logutil
 
 logger = logutil.setup_root_logger(stdout=logutil.INFO,
         filename='/tmp/nymms-scheduler.log', file_level=logutil.DEBUG)
 logutil.quiet_boto_logging()
 
-os.environ.setdefault('NYMMS_CONFIG', '~/git/nymms/conf/config.yaml')
 from nymms.config import config
+config.load_config('~/git/nymms/conf/config.yaml')
 
 from nymms.resources import (MonitoringGroup, Monitor, Command, Node,
         load_resources)
