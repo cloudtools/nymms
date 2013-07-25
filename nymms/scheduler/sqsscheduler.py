@@ -59,6 +59,7 @@ class SQSScheduler(object):
                     url = self.task_url(task)
                     task['_url'] = url
                     task['_attempt'] = 0
+                    task['_created'] = time.time()
                     self.send_task(task, pass_count * 5)
                     self.tasks_sent += 1
                 pass_count += 1
