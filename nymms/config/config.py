@@ -8,22 +8,16 @@ from nymms.config import yaml_config
 
 DEFAULTS = {}
 
-config_path = os.path.expanduser(os.environ.get('NYMMS_CONFIG',
-        '/etc/nymms/nymms.yaml'))
-
-settings = copy.deepcopy(DEFAULTS)
+settings = None
 version = None
 
 
-def reload_config():
-    """ Used to manually reload the config.
-    """
+def load_config(path='/etc/nymms/nymms.yaml', force=False):
     global settings, version, DEFAULTS
+    if settings and not force:
+        return
     settings = copy.deepcopy(DEFAULTS)
-    version, __config_settings = yaml_config.load_config(config_path)
+    version, __config_settings = yaml_config.load_config(path)
     settings.update(__config_settings)
-    logger.debug("Config loaded from '%s' with version '%s'." % (config_path,
+    logger.debug("Config loaded from '%s' with version '%s'." % (path,
         version))
-
-# Only ran once, no matter how many times the module is imported.
-reload_config()
