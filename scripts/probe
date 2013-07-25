@@ -16,7 +16,7 @@ config.load_config('~/git/nymms/conf/config.yaml')
 
 from nymms.resources import (MonitoringGroup, Monitor, Command, Node,
         load_resources)
-from nymms.probe.sqsprobe import SQSProbe
+from nymms.probe.sqs_probe import SQSProbe
 
 resource_version = load_resources(config.settings['resources'])
 sqs_conn = sqs.connect_to_region(config.settings['queue_region'])

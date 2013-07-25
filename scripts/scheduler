@@ -15,7 +15,7 @@ config.load_config('~/git/nymms/conf/config.yaml')
 
 from nymms.resources import (MonitoringGroup, Monitor, Command, Node,
         load_resources)
-from nymms.scheduler.sqsscheduler import SQSScheduler, YamlNodeBackend
+from nymms.scheduler.sqs_scheduler import SQSScheduler, YamlNodeBackend
 
 resource_version = load_resources(config.settings['resources'])
 
