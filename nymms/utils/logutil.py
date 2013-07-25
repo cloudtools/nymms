@@ -4,12 +4,15 @@ import os.path
 import sys
 import traceback
 import platform
+import os
 
 DEBUG = logging.DEBUG
 INFO = logging.INFO
 WARNING = logging.WARNING
 ERROR = logging.ERROR
 CRITICAL = logging.CRITICAL
+
+_pid = os.getpid()
 
 syslog_socket_paths = {
         'Darwin': '/var/run/syslog',
@@ -111,8 +114,8 @@ def setup_root_logger(stdout=INFO, filename=None, file_level=INFO,
         called, and use that.
         Default: None
     """
-    base_format = ('%(levelname)s %(name)s(%(funcName)s):%(lineno)d'
-            ' - %(message)s')
+    base_format = ('pid:' + str(_pid) + ' %(levelname)s '
+        '%(name)s(%(funcName)s):%(lineno)d - %(message)s')
     timed_format = '[%(asctime)s] ' + base_format
     timed_formatter = logging.Formatter(timed_format,
             datefmt="%Y/%m/%d %H:%M:%S %Z")
