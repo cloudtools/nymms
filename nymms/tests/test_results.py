@@ -1,7 +1,7 @@
 import unittest
 import copy
 
-from nymms import result
+from nymms import results
 
 result_data = {
     'task_url': 'nymms://db1/check_postgres/?timestamp=111111.111',
