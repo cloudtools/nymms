@@ -36,9 +36,9 @@ class SQSScheduler(object):
             tasks[node_name] = node.tasks
         return tasks
 
-    def task_url(self, task):
+    def task_url(self, task, timestamp):
         url = "nymms://{address}/{monitor[name]}/"
-        return url.format(**task) + "?timestamp=%f" % (time.time())
+        return url.format(**task) + "?timestamp=%f" % (timestamp,)
 
     def run(self):
         while True:
@@ -56,11 +56,12 @@ class SQSScheduler(object):
                     except IndexError:
                         del(tasks[node])
                         continue
-                    url = self.task_url(task)
+                    task_start = time.time()
+                    url = self.task_url(task, task_start)
                     task['_url'] = url
                     task['_attempt'] = 0
-                    task['_created'] = time.time()
-                    self.send_task(task, pass_count * 5)
+                    task['_created'] = task_start
+                    self.send_task(task)
                     self.tasks_sent += 1
                 pass_count += 1
             run_time = time.time() - start
