@@ -2,14 +2,14 @@ import time
 import logging
 import json
 
+logger = logging.getLogger(__name__)
+
 from boto.sqs.message import Message
 
 from nymms.resources import Monitor
 from nymms.utils import commands
-
-logger = logging.getLogger(__name__)
-
 from nymms.config import config
+from nymms import results
 
 
 class SQSProbe(object):
@@ -36,6 +36,8 @@ class SQSProbe(object):
         logger.debug("Attaching to results topic '%s'." % (
             self.results_topic,))
         self.topic = self.sns_conn.create_topic(self.results_topic)
+        response = self.topic['CreateTopicResponse']
+        self.topic_arn = response['CreateTopicResult']['TopicArn']
         logger.debug("Attached to results topic '%s'." % (self.results_topic,))
 
     def get_task(self):
@@ -57,43 +59,52 @@ class SQSProbe(object):
         m.set_body(json.dumps(task))
         return self.queue.write(m, delay_seconds=delay)
 
-    def submit_result(self, result, task):
+    def submit_result(self, task_result):
         task_lifetime = 0
-        if task.get('_created'):
-            task_lifetime = time.time() - task['_created']
+        task_data = task_result.task_data
+        created = task_data.get('_created')
+        if created:
+            task_lifetime = time.time() - created
+        task_data['_lifetime'] = task_lifetime
         logger.debug("Submitting '%s' result for task %s. (Attempt: %d, "
-            "Total Time: %-.2f)" % (result, task['_url'], task['_attempt'],
-                task_lifetime))
-        return
+                     "Total Time: %-.2f)" % (task_result.status_name,
+                                             task_data['_url'],
+                                             task_data['_attempt'],
+                                             task_lifetime))
+        return self.sns_conn.publish(self.topic_arn,
+                                     json.dumps(task_result.serialize()))
 
     def handle_task(self, task):
         task_data = json.loads(task.get_body())
         timeout = config.settings['monitor_timeout']
         attempt = task_data['_attempt']
-        task_created = task_data.get('_created')
         monitor = Monitor.registry[task_data['monitor']['name']]
         logger.debug("Executing %s attempt %d: %s" % (
             task_data['_url'], task_data['_attempt'],
             monitor.format_command(task_data)))
         task_start = time.time()
-        task_in_flight_time = 0
-        if task_created:
-            task_in_flight_time = task_created - task_start
+        task_result = results.TaskResult(task_data['_url'])
+        task_result.task_data = task_data
+        task_result.state = results.HARD
         try:
-            stdout, stderr = monitor.execute(task_data, timeout)
-            result = "SUCCESS"
+            output = monitor.execute(task_data, timeout)
+            task_result.output = output
+            task_result.status = results.OK
         except commands.CommandException, e:
+            if isinstance(e, commands.CommandFailure):
+                task_result.status = e.return_code
+                task_result.output = e.output
+            if isinstance(e, commands.CommandTimeout):
+                task_result.status = results.UNKNOWN
             task_run_time = time.time() - task_start
-            logger.debug(str(e))
             if attempt <= config.settings['probe']['retry_attempts']:
-                result = "SOFT FAIL"
+                task_result.state = results.SOFT
                 delay = max(config.settings['probe']['retry_delay'] -
                             task_run_time, 0)
                 self.resubmit_task(task_data, delay)
             else:
-                result = "HARD FAIL"
                 logger.debug("Retry limit hit, not resubmitting.")
-        self.submit_result(result, task_data)
+        self.submit_result(task_result)
         logger.debug('Deleting task.')
 
     def run(self):
