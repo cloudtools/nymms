@@ -18,12 +18,12 @@ states = ['soft', 'hard']
 
 
 class ResultValidationError(NymmsException):
-    def __init__(self, field, data):
+    def __init__(self, field, value):
         self.field = field
-        self.data = data
+        self.value = value
 
     def __str__(self):
-        return "Invalid data (%s) in field: %s" % (self.data, self.field,)
+        return "Invalid value (%s) in field: %s" % (self.value, self.field,)
 
 
 class RequiredField(NymmsException):
@@ -50,6 +50,13 @@ class TaskResult(object):
 
     def __repr__(self):
         return str(self.serialize())
+
+    def __setattr__(self, name, value):
+        object.__setattr__(self, name, value)
+        if name == 'state':
+            self.validate_state()
+        if name == 'status':
+            self.validate_status()
 
     def validate(self):
         required_fields = ['status', 'state', 'task_data']
