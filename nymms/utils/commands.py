@@ -16,7 +16,7 @@ class CommandTimeout(CommandException):
 
     def __str__(self):
         return "Command '%s' took longer than %d seconds to execute." % (
-                self.command, self.timeout)
+            self.command, self.timeout)
 
 
 class CommandFailure(CommandException):
@@ -27,7 +27,7 @@ class CommandFailure(CommandException):
 
     def __str__(self):
         return "Command '%s' exited with a return code of %d." % (
-                self.command, self.return_code,)
+            self.command, self.return_code,)
 
 
 def execute(command_string, timeout=None):
@@ -52,20 +52,21 @@ def execute(command_string, timeout=None):
     logger.debug(log_header)
     logger.debug("    %s" % (command_string))
     command_object = subprocess.Popen(command_string, shell=True,
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.STDOUT)
     try:
         output = command_object.communicate()
-    except CommandTimeout, e:
+    except CommandTimeout:
         logger.debug("Command timed out, terminating child command.")
         command_object.terminate()
         raise
     if not command_object.returncode == 0:
         signal.alarm(0)
         logger.debug("Command '%s' failed with return code %d:" % (
-                command_string, command_object.returncode))
-        for line in output.split('\n'):
+            command_string, command_object.returncode))
+        for line in output[0].split('\n'):
             logger.debug("    output: %s" % (line))
         raise CommandFailure(command_string, command_object.returncode,
-                output)
+                             output[0])
     signal.alarm(0)
-    return output
+    return output[0]
