@@ -1,4 +1,6 @@
 import json
+import time
+
 from nymms.exceptions import NymmsException
 from nymms.tasks import Task
 
@@ -36,7 +38,8 @@ class RequiredField(NymmsException):
 
 
 class TaskResult(object):
-    def __init__(self, task, status=None, state=None, output=''):
+    def __init__(self, task, status=None, state=None, timestamp=None,
+            output=''):
         if not isinstance(task, Task):
             self.task = Task(**task)
         else:
@@ -65,8 +68,11 @@ class TaskResult(object):
         for field in required_fields:
             if getattr(self, field) is None:
                 raise RequiredField(field)
-        self.validate_status()
-        self.validate_state()
+        for attr in dir(self):
+            if attr.startswith('validate_'):
+                validate_method = getattr(self, attr)
+                if callable(validate_method):
+                    validate_method()
 
     def validate_status(self):
         if isinstance(self.status, basestring):
@@ -81,6 +87,10 @@ class TaskResult(object):
                 self.state = states.index(self.state.lower())
             except ValueError:
                 raise ResultValidationError('state', self.state)
+
+    def validate_timestamp(self):
+        if not timestamp:
+            self.timestamp = time.time()
 
     @property
     def state_name(self):
