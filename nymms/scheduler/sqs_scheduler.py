@@ -6,6 +6,7 @@ from boto.sqs.message import Message
 
 from nymms import resources
 from nymms.config import config
+from nymms.tasks import Task
 
 logger = logging.getLogger(__name__)
 
@@ -33,12 +34,8 @@ class SQSScheduler(object):
         self.node_backend.load_nodes()
         nodes = resources.Node.registry
         for node_name, node in nodes.iteritems():
-            tasks[node_name] = node.tasks
+            tasks[node_name] = node.monitors
         return tasks
-
-    def task_url(self, task, timestamp):
-        url = "nymms://{address}/{monitor[name]}/"
-        return url.format(**task) + "?timestamp=%f" % (timestamp,)
 
     def run(self):
         while True:
@@ -52,15 +49,10 @@ class SQSScheduler(object):
                     break
                 for node in working_index:
                     try:
-                        task = tasks[node].pop()
+                        task = Task(tasks[node].pop())
                     except IndexError:
                         del(tasks[node])
                         continue
-                    task_start = time.time()
-                    url = self.task_url(task, task_start)
-                    task['_url'] = url
-                    task['_attempt'] = 0
-                    task['_created'] = task_start
                     self.send_task(task)
                     self.tasks_sent += 1
                 pass_count += 1

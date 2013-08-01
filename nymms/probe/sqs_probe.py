@@ -10,6 +10,7 @@ from nymms.resources import Monitor
 from nymms.utils import commands
 from nymms.config import config
 from nymms import results
+from nymms.tasks import Task
 
 
 class SQSProbe(object):
@@ -54,40 +55,39 @@ class SQSProbe(object):
     def resubmit_task(self, task, delay):
         task['_attempt'] += 1
         logger.debug("Resubmitting task %s with %d second delay." % (
-            task['_url'], delay))
+            task['_id'], delay))
         m = Message()
         m.set_body(json.dumps(task))
         return self.queue.write(m, delay_seconds=delay)
 
     def submit_result(self, task_result):
         task_lifetime = 0
-        task_data = task_result.task_data
-        created = task_data.get('_created')
+        task = task_result.task
+        created = task.get('_created')
         if created:
             task_lifetime = time.time() - created
-        task_data['_lifetime'] = task_lifetime
+        task['_lifetime'] = task_lifetime
         logger.debug("Submitting '%s' result for task %s. (Attempt: %d, "
                      "Total Time: %-.2f)" % (task_result.status_name,
-                                             task_data['_url'],
-                                             task_data['_attempt'],
+                                             task['_id'],
+                                             task['_attempt'],
                                              task_lifetime))
         return self.sns_conn.publish(self.topic_arn,
                                      json.dumps(task_result.serialize()))
 
     def handle_task(self, task):
-        task_data = json.loads(task.get_body())
+        task = Task(**json.loads(task.get_body()))
         timeout = config.settings['monitor_timeout']
-        attempt = task_data['_attempt']
-        monitor = Monitor.registry[task_data['monitor']['name']]
+        attempt = task['_attempt']
+        monitor = Monitor.registry[task['monitor']['name']]
         logger.debug("Executing %s attempt %d: %s" % (
-            task_data['_url'], task_data['_attempt'],
-            monitor.format_command(task_data)))
+            task['_id'], task['_attempt'],
+            monitor.format_command(task)))
         task_start = time.time()
-        task_result = results.TaskResult(task_data['_url'])
-        task_result.task_data = task_data
+        task_result = results.TaskResult(task)
         task_result.state = results.HARD
         try:
-            output = monitor.execute(task_data, timeout)
+            output = monitor.execute(task, timeout)
             task_result.output = output
             task_result.status = results.OK
         except commands.CommandException, e:
@@ -101,7 +101,7 @@ class SQSProbe(object):
                 task_result.state = results.SOFT
                 delay = max(config.settings['probe']['retry_delay'] -
                             task_run_time, 0)
-                self.resubmit_task(task_data, delay)
+                self.resubmit_task(task, delay)
             else:
                 logger.debug("Retry limit hit, not resubmitting.")
         self.submit_result(task_result)

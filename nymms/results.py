@@ -1,5 +1,6 @@
 import json
 from nymms.exceptions import NymmsException
+from nymms.tasks import Task
 
 # status constants
 OK = 0
@@ -35,18 +36,19 @@ class RequiredField(NymmsException):
 
 
 class TaskResult(object):
-    def __init__(self, task_url, status=None, state=None, output='',
-                 task_data=None):
-        self.task_url = task_url
+    def __init__(self, task, status=None, state=None, output=''):
+        if not isinstance(task, Task):
+            self.task = Task(**task)
+        else:
+            self.task = task
         self.status = status
         self.state = state
         self.output = output
-        self.task_data = task_data
         self._cleaned = {}
 
     def __str__(self):
         self.validate()
-        return "TaskResult: %s" % (self.task_url,)
+        return "TaskResult: %s" % (self.task['_instance'],)
 
     def __repr__(self):
         return str(self.serialize())
@@ -59,7 +61,7 @@ class TaskResult(object):
             self.validate_status()
 
     def validate(self):
-        required_fields = ['status', 'state', 'task_data']
+        required_fields = ['status', 'state', 'task']
         for field in required_fields:
             if getattr(self, field) is None:
                 raise RequiredField(field)
