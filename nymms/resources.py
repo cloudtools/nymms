@@ -133,14 +133,6 @@ class Node(NanoResource):
 
         super(Node, self).__init__(name, **kwargs)
 
-    def monitors(self):
-        monitor_dict = {}
-        for group_name, group in self.monitoring_groups.iteritems():
-            monitor_dict[group_name] = {}
-            for monitor_name, monitor in group.monitors.iteritems():
-                monitor_dict[group_name][monitor_name] = monitor
-        return monitor_dict
-
     def build_context(self, monitoring_group, monitor):
         context = {}
         for obj in (monitoring_group, self, monitor):
@@ -152,7 +144,7 @@ class Node(NanoResource):
         return context
 
     @property
-    def tasks(self):
+    def monitors(self):
         if self._tasks:
             return self._tasks
         for group_name, group in self.monitoring_groups.iteritems():
