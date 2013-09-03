@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 
 import os
-from boto import sqs
-from boto import sns
 
-from nymms.utils import logutil
+from nymms.utils import logutil, aws_helper
 
 logger = logutil.setup_root_logger(stdout=logutil.INFO,
         filename='/tmp/nymms-reactor-%d.log' % (os.getpid()),
@@ -21,10 +19,15 @@ from nymms.alerter.log_alerter import LogAlerter
 alerter = SESAlerter(config.settings['queue_region'])
 #alerter = LogAlerter()
 
-sqs_conn = sqs.connect_to_region(config.settings['queue_region'])
-sns_conn = sns.connect_to_region(config.settings['queue_region'])
-p = SQSReactor('alerting_reactor', sqs_conn, sns_conn,
-        config.settings['results_topic'],
-        [alerter,],
-        config.settings['reactors']['alerting_reactor']['queue_name'])
+region = config.settings['queue_region']
+conn_mgr = aws_helper.ConnectionManager(region)
+
+results_topic = config.settings['results_topic']
+state_domain = config.settings['states']['domain']
+queue_name = config.settings['reactors']['alerting_reactor']['queue_name']
+
+p = SQSReactor('alerting_reactor', conn_mgr, results_topic, [alerter,],
+        state_domain, queue_name)
+
+
 p.run()

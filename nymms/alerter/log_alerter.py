@@ -16,4 +16,4 @@ class LogAlerter(object):
         recipients = config.settings['alerts']['recipients']
         result_data = task_result.serialize()
         logger.debug("Sending SES alert to %s as %s for %s" % (
-            recipients, sender, task_result.task['_id']))
+            recipients, sender, task_result.id))

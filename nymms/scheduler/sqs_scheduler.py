@@ -12,21 +12,22 @@ logger = logging.getLogger(__name__)
 
 
 class SQSScheduler(object):
-    def __init__(self, connection, queue_name, node_backend):
+    def __init__(self, conn_mgr, queue_name, node_backend):
         self.node_backend = node_backend
-        self.connection = connection
+        self.conn_mgr = conn_mgr
         self.queue_name = queue_name
         self.tasks_sent = 0
         self.create_queue()
 
     def create_queue(self):
         logger.debug("Creating queue '%s'." % (self.queue_name))
-        self.queue = self.connection.create_queue(self.queue_name)
+        self.queue = self.conn_mgr.sqs.create_queue(self.queue_name)
 
     def send_task(self, task, delay=None):
-        logger.debug("Sending task to queue '%s'." % (self.queue_name))
+        logger.debug("Sending task '%s' to queue '%s'." % (task.id, 
+                                                           self.queue_name))
         m = Message()
-        m.set_body(json.dumps(task))
+        m.set_body(json.dumps(task.serialize()))
         return self.queue.write(m, delay_seconds=delay)
 
     def get_tasks(self):
@@ -49,7 +50,10 @@ class SQSScheduler(object):
                     break
                 for node in working_index:
                     try:
-                        task = Task(tasks[node].pop())
+                        task_context = tasks[node].pop()
+                        task_id_template = "{node[name]}:{monitor[name]}"
+                        task_id = task_id_template.format(**task_context)
+                        task = Task(task_id, context=task_context)
                     except IndexError:
                         del(tasks[node])
                         continue

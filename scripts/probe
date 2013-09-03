@@ -4,7 +4,7 @@ import os
 from boto import sqs
 from boto import sns
 
-from nymms.utils import logutil
+from nymms.utils import logutil, aws_helper
 
 logger = logutil.setup_root_logger(stdout=logutil.INFO,
         filename='/tmp/nymms-probe-%d.log' % (os.getpid()),
@@ -19,8 +19,12 @@ from nymms.resources import (MonitoringGroup, Monitor, Command, Node,
 from nymms.probe.sqs_probe import SQSProbe
 
 resource_version = load_resources(config.settings['resources'])
-sqs_conn = sqs.connect_to_region(config.settings['queue_region'])
-sns_conn = sns.connect_to_region(config.settings['queue_region'])
-p = SQSProbe(sqs_conn, sns_conn, config.settings['tasks']['name'],
-        config.settings['results_topic'])
+region = config.settings['queue_region']
+conn_mgr = aws_helper.ConnectionManager(region)
+
+tasks_queue = config.settings['tasks']['name']
+results_topic = config.settings['results_topic']
+state_domain = config.settings['states']['domain']
+
+p = SQSProbe(conn_mgr, tasks_queue, results_topic, state_domain)
 p.run()

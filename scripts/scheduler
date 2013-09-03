@@ -2,9 +2,8 @@
 
 import os
 
-from boto.sqs import connect_to_region
-
 from nymms.utils import logutil
+from nymms.utils import aws_helper
 
 logger = logutil.setup_root_logger(stdout=logutil.INFO,
         filename='/tmp/nymms-scheduler.log', file_level=logutil.DEBUG)
@@ -21,7 +20,7 @@ resource_version = load_resources(config.settings['resources'])
 
 be = YamlNodeBackend(config.settings['nodes'])
 
-conn = connect_to_region(config.settings['queue_region'])
+conn_mgr = aws_helper.ConnectionManager(config.settings['queue_region'])
 
-s = SQSScheduler(conn, config.settings['tasks']['name'], be)
+s = SQSScheduler(conn_mgr, config.settings['tasks']['name'], be)
 s.run()

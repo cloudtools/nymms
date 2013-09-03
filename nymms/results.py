@@ -1,8 +1,10 @@
 import json
 import time
+import logging
 
-from nymms.exceptions import NymmsException
-from nymms.tasks import Task
+logger = logging.getLogger(__name__)
+
+from nymms.data_types import NymmsDataType
 
 # status constants
 OK = 0
@@ -20,110 +22,120 @@ HARD = 1
 states = ['soft', 'hard']
 
 
-class ResultValidationError(NymmsException):
-    def __init__(self, field, value):
-        self.field = field
-        self.value = value
-
-    def __str__(self):
-        return "Invalid value (%s) in field: %s" % (self.value, self.field,)
+def get_state_name(state_code):
+    return states[state_code]
 
 
-class RequiredField(NymmsException):
-    def __init__(self, field):
-        self.field = field
-
-    def __str__(self):
-        return "Required field is blank: %s" % (self.field,)
+def get_status_name(status_code):
+    if status_code > 3:
+        return "unknown"
+    return statuses[status_code]
 
 
-class TaskResult(object):
-    def __init__(self, task, status=None, state=None, timestamp=None,
-            output=''):
-        if not isinstance(task, Task):
-            self.task = Task(**task)
-        else:
-            self.task = task
-        self.status = status
-        self.state = state
-        self.output = output
-        self._cleaned = {}
+def validate_status(status):
+    if isinstance(status, basestring):
+        try:
+            return statuses.index(status.lower())
+        except ValueError:
+            raise ResultValidationError('status', status)
+    elif isinstance(status, int):
+        try:
+            return statuses[status] and status
+        except IndexError:
+            raise ResultValidationError('status', status)
+    raise ResultValidationError('status', status)
 
-    def __str__(self):
-        self.validate()
-        return "TaskResult: %s" % (self.task['_instance'],)
 
-    def __repr__(self):
-        return str(self.serialize())
+def validate_state(state):
+    if isinstance(state, basestring):
+        try:
+            return states.index(state.lower())
+        except ValueError:
+            raise ResultValidationError('state', state)
+    elif isinstance(state, int):
+        try:
+            return states[state] and state
+        except IndexError:
+            raise ResultValidationError('state', state)
+    raise ResultValidationError('state', state)
 
-    def __setattr__(self, name, value):
-        object.__setattr__(self, name, value)
-        if name == 'state':
-            self.validate_state()
-        if name == 'status':
-            self.validate_status()
 
-    def validate(self):
-        required_fields = ['status', 'state', 'task']
-        for field in required_fields:
-            if getattr(self, field) is None:
-                raise RequiredField(field)
-        for attr in dir(self):
-            if attr.startswith('validate_'):
-                validate_method = getattr(self, attr)
-                if callable(validate_method):
-                    validate_method()
-
+class StateStatusMixin(object):
     def validate_status(self):
-        if isinstance(self.status, basestring):
-            try:
-                self.status = statuses.index(self.status.lower())
-            except ValueError:
-                raise ResultValidationError('status', self.status)
+        self.status = validate_status(self.status)
 
     def validate_state(self):
-        if isinstance(self.state, basestring):
-            try:
-                self.state = states.index(self.state.lower())
-            except ValueError:
-                raise ResultValidationError('state', self.state)
+        self.state = validate_state(self.state)
 
     def validate_timestamp(self):
-        if not timestamp:
-            self.timestamp = time.time()
+        self.timestamp = int(self.timestamp or time.time())
 
     @property
     def state_name(self):
         self.validate_state()
-        return states[self.state]
+        return get_state_name(self.state)
 
     @property
     def status_name(self):
         self.validate_status()
+        return get_status_name(self.status)
+
+
+class Result(NymmsDataType, StateStatusMixin):
+    required_fields = ['state', 'status']
+
+    def __init__(self, object_id, status=None, state=None, timestamp=None,
+            output=None, task_context=None, result_object=None):
+        super(Result, self).__init__(object_id)
+        self.status = status
+        self.state = state
+        self.timestamp = timestamp
+        self.output = output or ''
+        self.task_context = task_context or {}
+        self._result_object = result_object
+
+    def delete(self):
+        self._result_object.delete()
+
+    def _serialize(self):
+        self._cleaned['state_name'] = get_state_name(self.state)
+        self._cleaned['status_name'] = get_status_name(self.status)
+
+    @classmethod
+    def deserialize(cls, data):
+        result_message = json.loads(data.get_body())['Message']
+        result_dict = json.loads(result_message)
+        del(result_dict['state_name'])
+        del(result_dict['status_name'])
+        result_obj = super(Result, cls).deserialize(result_dict)
+        result_obj._result_object = data
+        return result_obj
+
+
+class StateRecord(NymmsDataType, StateStatusMixin):
+    required_fields = ['state', 'status']
+
+    def __init__(self, object_id, timestamp=None, state=None, status=None):
+        super(StateRecord, self).__init__(object_id)
+        self.timestamp = timestamp
+        self.state = state
+        self.status = status
+        self._cleaned = {}
+
+    @classmethod
+    def decode_value(cls, value):
         try:
-            return statuses[self.status]
-        except IndexError:
-            return "unknown"
+           return int(value)
+        except ValueError:
+            try:
+                return float(value)
+            except ValueError:
+                return str(value)
 
-    def serialize(self):
-        if self._cleaned:
-            return self._cleaned
-
-        self.validate()
-        d = self.__dict__
-
-        for key, value in d.iteritems():
-            if not key.startswith('_'):
-                self._cleaned[key] = value
-
-        self._cleaned['state'] = self.state_name
-        self._cleaned['status'] = self.status_name
-
-        return self._cleaned
-
-
-class ResultEncoder(json.JSONEncoder):
-    def default(self, o):
-        if isinstance(o, TaskResult):
-            return o.serialize()
-        return json.JSONEncoder.default(self, o)
+    @classmethod
+    def deserialize(cls, sdb_item):
+        record_id = sdb_item.pop('id')
+        item_dict = {}
+        for k, v in sdb_item.iteritems():
+            item_dict[k] = cls.decode_value(v)
+        return cls(record_id, **item_dict)

@@ -1,34 +1,36 @@
 import logging
 import time
+import json
 
 logger = logging.getLogger(__name__)
 
+from nymms.data_types import NymmsDataType
 
-class Task(dict):
-    id_format = "{node[name]}:{monitor[name]}"
 
-    def __init__(self, *args, **kwargs):
-        ret = dict.__init__(self, *args, **kwargs)
-        if not '_id' in self:
-            self['_id'] = self.create_id()
-        if not '_attempt' in self:
-            self['_attempt'] = 0
-        if not '_created' in self:
-            self['_created'] = time.time()
-        if not '_instance' in self:
-            self['_instance'] = self.create_instance()
-        return ret
+class Task(NymmsDataType):
+    def __init__(self, object_id, created=None, attempt=None, context=None,
+                 task_object=None):
+        super(Task, self).__init__(object_id)
+        self.attempt = attempt
+        self.created = created
+        self.context = context
+        self._task_object = task_object
 
-    def create_id(self):
-        return self.id_format.format(**self)
+    def validate_created(self):
+        self.created = int(self.created or time.time())
 
-    def create_instance(self):
-        return self['_id'] + ":%f" % (self['_created'],)
+    def validate_attempt(self):
+        self.attempt = self.attempt or 0
 
-    @property
-    def id(self):
-        return self['_id']
+    def increment_attempt(self):
+        self.attempt += 1
 
-    @property
-    def instance(self):
-        return self['_instance']
+    def delete(self):
+        self._task_object.delete()
+
+    @classmethod
+    def deserialize(cls, data):
+        message = json.loads(data.get_body())
+        task_obj = super(Task, cls).deserialize(message)
+        task_obj._task_object = data
+        return task_obj

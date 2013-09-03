@@ -14,19 +14,20 @@ from nymms.tasks import Task
 
 
 class SQSProbe(object):
-    def __init__(self, sqs_conn, sns_conn, queue_name, results_topic):
-        self.sqs_conn = sqs_conn
-        self.sns_conn = sns_conn
+    def __init__(self, conn_mgr, queue_name, results_topic, state_domain):
+        self.conn_mgr = conn_mgr
         self.queue_name = queue_name
         self.results_topic = results_topic
+        self.state_domain = state_domain
         self.tasks_received = 0
         self.get_queue()
         self.get_topic()
+        self.get_domain()
 
     def get_queue(self):
         while True:
             logger.debug("Attaching to task queue '%s'." % (self.queue_name))
-            self.queue = self.sqs_conn.get_queue(self.queue_name)
+            self.queue = self.conn_mgr.sqs.get_queue(self.queue_name)
             if self.queue:
                 logger.debug('Attached to task queue.')
                 break
@@ -36,10 +37,15 @@ class SQSProbe(object):
     def get_topic(self):
         logger.debug("Attaching to results topic '%s'." % (
             self.results_topic,))
-        self.topic = self.sns_conn.create_topic(self.results_topic)
+        self.topic = self.conn_mgr.sns.create_topic(self.results_topic)
         response = self.topic['CreateTopicResponse']
         self.topic_arn = response['CreateTopicResult']['TopicArn']
         logger.debug("Attached to results topic '%s'." % (self.results_topic,))
+
+    def get_domain(self):
+        domain = self.state_domain
+        logger.debug("Getting state domain '%s' from SDB." % (domain))
+        self.domain = self.conn_mgr.sdb.create_domain(domain)
 
     def get_task(self):
         if not getattr(self, 'queue'):
@@ -48,46 +54,55 @@ class SQSProbe(object):
         wait_time = config.settings['probe']['queue_wait_time']
         timeout = config.settings['monitor_timeout'] + 3
         logger.debug("Getting task from queue '%s'" % (self.queue_name))
-        task = self.queue.read(visibility_timeout=timeout,
-                               wait_time_seconds=wait_time)
+        task_data = self.queue.read(visibility_timeout=timeout,
+                                    wait_time_seconds=wait_time)
+        task = None
+        if task_data:
+            task = Task.deserialize(task_data)
         return task
 
+    def get_state(self, task):
+        """ Gets the old state of the service from SDB. """
+        state_item = self.domain.get_item(task.id, consistent_read=True)
+        state = None
+        if state_item:
+            state = results.StateRecord.deserialize(state_item)
+        return state
+
     def resubmit_task(self, task, delay):
-        task['_attempt'] += 1
+        task.increment_attempt()
         logger.debug("Resubmitting task %s with %d second delay." % (
-            task['_id'], delay))
+            task.id, delay))
         m = Message()
-        m.set_body(json.dumps(task))
+        m.set_body(json.dumps(task.serialize()))
         return self.queue.write(m, delay_seconds=delay)
 
     def submit_result(self, task_result):
         task_lifetime = 0
-        task = task_result.task
-        created = task.get('_created')
-        if created:
-            task_lifetime = time.time() - created
-        task['_lifetime'] = task_lifetime
-        logger.debug("Submitting '%s' result for task %s. (Attempt: %d, "
-                     "Total Time: %-.2f)" % (task_result.status_name,
-                                             task['_id'],
-                                             task['_attempt'],
-                                             task_lifetime))
-        return self.sns_conn.publish(self.topic_arn,
-                                     json.dumps(task_result.serialize()))
+        logger.debug("Submitting '%s/%s' result for task %s." % (
+                        task_result.status_name,
+                        task_result.state_name,
+                        task_result.id))
+        
+        return self.conn_mgr.sns.publish(self.topic_arn,
+            json.dumps(task_result.serialize()))
 
     def handle_task(self, task):
-        task = Task(**json.loads(task.get_body()))
+        previous = self.get_state(task)
         timeout = config.settings['monitor_timeout']
-        attempt = task['_attempt']
-        monitor = Monitor.registry[task['monitor']['name']]
-        logger.debug("Executing %s attempt %d: %s" % (
-            task['_id'], task['_attempt'],
-            monitor.format_command(task)))
+        attempt = task.attempt
+        max_retries = config.settings['probe']['retry_attempts']
+        monitor = Monitor.registry[task.context['monitor']['name']]
+        command = monitor.format_command(task.context)
+        logger.debug("Executing %s attempt %d: %s" % (task.id,
+                                                      task.attempt,
+                                                      command))
         task_start = time.time()
-        task_result = results.TaskResult(task)
+        task_result = results.Result(task.id, timestamp=task.created,
+                                     task_context=task.context)
         task_result.state = results.HARD
         try:
-            output = monitor.execute(task, timeout)
+            output = monitor.execute(task.context, timeout)
             task_result.output = output
             task_result.status = results.OK
         except commands.CommandException, e:
@@ -97,15 +112,20 @@ class SQSProbe(object):
             if isinstance(e, commands.CommandTimeout):
                 task_result.status = results.UNKNOWN
             task_run_time = time.time() - task_start
-            if attempt <= config.settings['probe']['retry_attempts']:
-                task_result.state = results.SOFT
-                delay = max(config.settings['probe']['retry_delay'] -
-                            task_run_time, 0)
-                self.resubmit_task(task, delay)
+            if attempt <= max_retries:
+                if not previous or previous.state == results.SOFT or (
+                        previous.state == results.HARD and not 
+                        task_result.status == previous.status):
+                    logger.debug('Previous state is not hard and current '
+                            'status is different than previous status. '
+                            'Resubmitting task.')
+                    task_result.state = results.SOFT
+                    delay = max(config.settings['probe']['retry_delay'] -
+                                task_run_time, 0)
+                    self.resubmit_task(task, delay)
             else:
                 logger.debug("Retry limit hit, not resubmitting.")
         self.submit_result(task_result)
-        logger.debug('Deleting task.')
 
     def run(self):
         while True:

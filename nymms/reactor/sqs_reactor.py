@@ -27,10 +27,10 @@ class InvalidReactorName(Exception):
 
 
 class SQSReactor(object):
-    def __init__(self, reactor_name, sqs_conn, sns_conn, topic_name, alerters,
-            queue_name=None):
-        self.sqs_conn = sqs_conn
-        self.sns_conn = sns_conn
+    def __init__(self, reactor_name, conn_mgr, topic_name, alerters,
+                 state_domain, queue_name=None):
+        self.conn_mgr = conn_mgr
+        self.state_domain = state_domain
         self.topic_name = topic_name
         self.alerters = alerters
         self.queue_name = queue_name
@@ -43,44 +43,60 @@ class SQSReactor(object):
             config.settings['reactors'][reactor_name])
         if not queue_name:
             self.queue_name = "%s-%s" % (topic_name, uuid.uuid4().hex)
-        self.create_channel()
+        self.get_topic()
+        self.get_queue()
+        self.subscribe_queue_to_topic()
+        self.get_domain()
         logger.debug("Reactor '%s' initialized." % (reactor_name,))
 
-    def create_channel(self):
-        logger.debug("Creating topic '%s'." % (self.topic_name,))
-        self.topic = self.sns_conn.create_topic(self.topic_name)
-        logger.debug("Creating queue '%s'." % (self.queue_name,))
-        self.queue = self.sqs_conn.create_queue(self.queue_name)
+    def get_topic(self):
+        logger.debug("Attaching to results topic '%s'." % (
+            self.topic_name,))
+        self.topic = self.conn_mgr.sns.create_topic(self.topic_name)
+        response = self.topic['CreateTopicResponse']
+        self.topic_arn = response['CreateTopicResult']['TopicArn']
+
+    def get_queue(self):
+        logger.debug("Attaching to queue '%s'." % (self.queue_name))
+        self.queue = self.conn_mgr.sqs.create_queue(self.queue_name)
         self.queue.set_message_class(RawMessage)
-        self.topic_arn = self.topic['CreateTopicResponse']\
-                ['CreateTopicResult']['TopicArn']
-        logger.debug("Subscribing queue to topic.")
-        return self.sns_conn.subscribe_sqs_queue(self.topic_arn, self.queue)
+
+    def subscribe_queue_to_topic(self):
+        return self.conn_mgr.sns.subscribe_sqs_queue(self.topic_arn, self.queue)
+
+    def get_domain(self):
+        domain = self.state_domain
+        logger.debug("Getting state domain '%s' from SDB." % (domain))
+        self.domain = self.conn_mgr.sdb.create_domain(domain)
 
     def get_result(self):
-        if not getattr(self, 'queue'):
-            logger.debug('Not attached to queue.')
-            self.create_channel()
         wait_time = self.reactor_config['queue_wait_time']
         timeout = self.reactor_config['visibility_timeout']
         logger.debug("Getting result from queue '%s'." % (self.queue_name,))
         result = self.queue.read(visibility_timeout=timeout,
                                  wait_time_seconds=wait_time)
-        return result
+        result_object = None
+        if result:
+            result_object = results.Result.deserialize(result)
+            result_object.validate()
+        return result_object
+
+    def get_state(self, task):
+        """ Gets the old state of the service from SDB. """
+        state_item = self.domain.get_item(task.id, consistent_read=True)
+        state = None
+        if state_item:
+            state = results.StateRecord.deserialize(state_item)
+        return state
 
     def handle_result(self, task_result, timeout=None):
         if not timeout:
             timeout = self.reactor_config.get('visibility_timeout', 30)
-        body = json.loads(task_result.get_body())['Message']
-        task_result = results.TaskResult(**json.loads(body))
         task_result.validate()
-        logger.debug("%s: %s/%s" % (task_result.task['_id'],
-                                    task_result.state,
-                                    task_result.status))
-        if task_result.state == results.HARD and \
-                task_result.status > results.OK:
-            self.notify(task_result)
-        logger.debug(task_result.serialize())
+        previous = self.get_state(task_result)
+        if task_result.state == results.HARD:
+            if not previous or not previous.status == task_result.status:
+                self.notify(task_result)
 
     def notify(self, task_result):
         for alerter in self.alerters:
