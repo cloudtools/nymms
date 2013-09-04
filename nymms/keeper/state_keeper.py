@@ -46,15 +46,14 @@ class StateKeeper(object):
                 break
             logger.debug("Getting previous state for %s." % (task_id))
             previous_state_data = self.domain.get_item(task_id,
-                                                  consistent_read=True)
+                                                       consistent_read=True)
             previous_state = None
             if previous_state_data:
                 previous_state = results.StateRecord.deserialize(
                     previous_state_data)
             state_record = results.StateRecord(task_result.id,
-                                               state=task_result.state,
-                                               status=task_result.status,
-                                               timestamp=result_ts)
+                state=task_result.state, state_type=task_result.state_type,
+                timestamp=result_ts)
 
             # By default we ensure that there is no timestamp for a given
             # record.  This is a sort of janky way to make sure that between
@@ -69,12 +68,12 @@ class StateKeeper(object):
                         "the current state.  Discarding.")
                     return
                 # If there is a previous state, and the state is HARD AND
-                # the previous status and current status are the same then just
+                # the previous state and current state are the same then just
                 # update the timestamp
                 # This prevents flapping of state
-                if previous_state.status == task_result.status:
-                    if previous_state.state == results.HARD:
-                        logger.warning("HARD status has not changed.  Only "
+                if previous_state.state == task_result.state:
+                    if previous_state.state_type == results.HARD:
+                        logger.warning("HARD state has not changed.  Only "
                                         "updating timestamp.")
                         state_record = previous_state
                         state_record.timestamp = result_ts
@@ -102,7 +101,10 @@ class StateKeeper(object):
                                  wait_time_seconds=wait_time)
         result_object = None
         if result:
-            result_object = results.Result.deserialize(result)
+            result_message = json.loads(result.get_body())['Message']
+            result_dict = json.loads(result_message)
+            result_object = results.Result.deserialize(result_dict,
+                                                       origin=result)
             result_object.validate()
         return result_object
 

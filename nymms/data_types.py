@@ -1,5 +1,6 @@
 import logging
 import time
+import copy
 
 from nymms.exceptions import NymmsException
 
@@ -26,8 +27,9 @@ class MissingRequiredField(NymmsException):
 class NymmsDataType(object):
     required_fields = []
 
-    def __init__(self, object_id):
+    def __init__(self, object_id, origin=None):
         self.id = object_id
+        self._origin = origin
         self._cleaned = {}
 
     def __str__(self):
@@ -35,13 +37,17 @@ class NymmsDataType(object):
 
     def validate(self):
         for field in self.required_fields:
-            if getattr(self, field) is None:
+            if getattr(self, field, None) is None:
                 raise MissingRequiredField(field)
         for attr in dir(self):
             if attr.startswith('validate_'):
                 validate_method = getattr(self, attr)
                 if callable(validate_method):
                     validate_method()
+
+    def delete(self):
+        if self._origin:
+            return self._origin.delete()
 
     def _serialize(self):
         """ Children classes should override this to update the dictionary
@@ -60,7 +66,17 @@ class NymmsDataType(object):
         self._serialize()
         return self._cleaned
 
+    @staticmethod
+    def _deserialize(data):
+        """ Children classes should override this to modify the dictionary
+        that is used by the deserialize method.
+        """
+        return copy.deepcopy(data)
+
     @classmethod
-    def deserialize(cls, data):
-        object_id = data.pop('id')
-        return cls(object_id, **data)
+    def deserialize(cls, data, origin=None):
+        new_data = cls._deserialize(data)
+        if not origin:
+            origin = data
+        object_id = new_data.pop('id')
+        return cls(object_id, origin=origin, **new_data)

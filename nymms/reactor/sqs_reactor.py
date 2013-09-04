@@ -77,7 +77,10 @@ class SQSReactor(object):
                                  wait_time_seconds=wait_time)
         result_object = None
         if result:
-            result_object = results.Result.deserialize(result)
+            result_message = json.loads(result.get_body())['Message']
+            result_dict = json.loads(result_message)
+            result_object = results.Result.deserialize(result_dict,
+                                                       origin=result)
             result_object.validate()
         return result_object
 
@@ -94,8 +97,8 @@ class SQSReactor(object):
             timeout = self.reactor_config.get('visibility_timeout', 30)
         task_result.validate()
         previous = self.get_state(task_result)
-        if task_result.state == results.HARD:
-            if not previous or not previous.status == task_result.status:
+        if task_result.state_type == results.HARD:
+            if not previous or not previous.state == task_result.state:
                 self.notify(task_result)
 
     def notify(self, task_result):

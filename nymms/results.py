@@ -1,71 +1,78 @@
 import json
 import time
 import logging
+import copy
 
 logger = logging.getLogger(__name__)
 
-from nymms.data_types import NymmsDataType
+from nymms.data_types import (NymmsDataType,
+                              ValidationError,
+                              MissingRequiredField)
 
-# status constants
+# state constants
 OK = 0
 WARN = WARNING = 1
 CRIT = CRITICAL = 2
 UNKNOWN = 3
 
-# Anything over status 2 is unknown
-statuses = ['ok', 'warning', 'critical', 'unknown']
+# Anything over state 2 is unknown
+states = ['ok', 'warning', 'critical', 'unknown']
 
-# state constants
+# state type constants
 SOFT = 0
 HARD = 1
 
-states = ['soft', 'hard']
+state_types = ['soft', 'hard']
+
+
+def get_state_type_name(state_type_code):
+    return state_types[state_type_code]
 
 
 def get_state_name(state_code):
+    if state_code > 3:
+        return "unknown"
     return states[state_code]
 
 
-def get_status_name(status_code):
-    if status_code > 3:
-        return "unknown"
-    return statuses[status_code]
-
-
-def validate_status(status):
-    if isinstance(status, basestring):
-        try:
-            return statuses.index(status.lower())
-        except ValueError:
-            raise ResultValidationError('status', status)
-    elif isinstance(status, int):
-        try:
-            return statuses[status] and status
-        except IndexError:
-            raise ResultValidationError('status', status)
-    raise ResultValidationError('status', status)
-
-
 def validate_state(state):
-    if isinstance(state, basestring):
+    value = state
+    exc = ValidationError('state', value)
+    if isinstance(value, basestring):
         try:
-            return states.index(state.lower())
+            return states.index(value.lower())
         except ValueError:
-            raise ResultValidationError('state', state)
-    elif isinstance(state, int):
+            raise exc
+    elif isinstance(value, int):
         try:
-            return states[state] and state
+            return states[value] and value
         except IndexError:
-            raise ResultValidationError('state', state)
-    raise ResultValidationError('state', state)
+            raise exc
+    raise exc
 
 
-class StateStatusMixin(object):
-    def validate_status(self):
-        self.status = validate_status(self.status)
+def validate_state_type(state_type):
+    value = state_type
+    exc = ValidationError('state_type', value)
+    if isinstance(value, basestring):
+        try:
+            return state_types.index(value.lower())
+        except ValueError:
+            raise exc
+    elif isinstance(value, int):
+        try:
+            return state_types[value] and value
+        except IndexError:
+            raise exc
+    raise exc
 
+
+class StateMixin(object):
     def validate_state(self):
         self.state = validate_state(self.state)
+
+    def validate_state_type(self):
+        self.state_type = validate_state_type(self.state_type)
 
     def validate_timestamp(self):
         self.timestamp = int(self.timestamp or time.time())
@@ -76,50 +83,44 @@ class StateStatusMixin(object):
         return get_state_name(self.state)
 
     @property
-    def status_name(self):
-        self.validate_status()
-        return get_status_name(self.status)
+    def state_type_name(self):
+        self.validate_state_type()
+        return get_state_type_name(self.state_type)
 
 
-class Result(NymmsDataType, StateStatusMixin):
-    required_fields = ['state', 'status']
+class Result(NymmsDataType, StateMixin):
+    required_fields = ['state', 'state_type']
 
-    def __init__(self, object_id, status=None, state=None, timestamp=None,
-            output=None, task_context=None, result_object=None):
-        super(Result, self).__init__(object_id)
-        self.status = status
+    def __init__(self, object_id, state=None, state_type=None, timestamp=None,
+                 output=None, task_context=None, origin=None):
+        super(Result, self).__init__(object_id=object_id, origin=origin)
         self.state = state
+        self.state_type = state_type
         self.timestamp = timestamp
         self.output = output or ''
         self.task_context = task_context or {}
-        self._result_object = result_object
-
-    def delete(self):
-        self._result_object.delete()
 
     def _serialize(self):
         self._cleaned['state_name'] = get_state_name(self.state)
-        self._cleaned['status_name'] = get_status_name(self.status)
+        self._cleaned['state_type_name'] = get_state_type_name(self.state_type)
 
     @classmethod
-    def deserialize(cls, data):
-        result_message = json.loads(data.get_body())['Message']
-        result_dict = json.loads(result_message)
-        del(result_dict['state_name'])
-        del(result_dict['status_name'])
-        result_obj = super(Result, cls).deserialize(result_dict)
-        result_obj._result_object = data
-        return result_obj
+    def _deserialize(cls, item):
+        new_item = super(Result, cls)._deserialize(item)
+        new_item = copy.deepcopy(item)
+        del(new_item['state_name'])
+        del(new_item['state_type_name'])
+        return new_item
 
 
-class StateRecord(NymmsDataType, StateStatusMixin):
-    required_fields = ['state', 'status']
+class StateRecord(NymmsDataType, StateMixin):
+    required_fields = ['state', 'state_type']
 
-    def __init__(self, object_id, timestamp=None, state=None, status=None):
-        super(StateRecord, self).__init__(object_id)
+    def __init__(self, object_id, timestamp=None, state=None, state_type=None):
+        super(StateRecord, self).__init__(object_id=object_id, origin=None)
         self.timestamp = timestamp
         self.state = state
-        self.status = status
+        self.state_type = state_type
         self._cleaned = {}
 
     @classmethod
@@ -133,9 +134,8 @@ class StateRecord(NymmsDataType, StateStatusMixin):
                 return str(value)
 
     @classmethod
-    def deserialize(cls, sdb_item):
-        record_id = sdb_item.pop('id')
+    def _deserialize(cls, item):
         item_dict = {}
-        for k, v in sdb_item.iteritems():
+        for k, v in item.iteritems():
             item_dict[k] = cls.decode_value(v)
-        return cls(record_id, **item_dict)
+        return item_dict

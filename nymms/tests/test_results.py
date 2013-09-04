@@ -2,49 +2,35 @@ import unittest
 import copy
 
 from nymms import results
+from nymms.data_types import ValidationError, MissingRequiredField
 
-result_data = {
-    'result_id': 'www1:check_http',
-    'status': results.OK,
-    'state': results.SOFT,
-    'task_context': {'key': 'test data'},
-}
 
 class TestResult(unittest.TestCase):
     def setUp(self):
-        self.data = copy.deepcopy(result_data)
+        self.result = results.Result('www1:check_http',
+                state=results.OK,
+                state_type=results.HARD,
+                timestamp=123456,
+                output='OK: check_http is ok',
+                task_context={'url': 'http://example.com/'})
 
     def test_invalid_state_name(self):
-        self.data['state'] = 'foo'
-        with self.assertRaises(results.ResultValidationError):
-            results.Result(**self.data)
+        self.result.state = 'foo'
+        with self.assertRaises(ValidationError):
+            self.result.serialize()
 
-    def test_invalid_status_name(self):
-        self.data['status'] = 'foo'
-        with self.assertRaises(results.ResultValidationError):
-            results.Result(**self.data)
+    def test_invalid_state_type_name(self):
+        self.result.state_type = 'foo'
+        with self.assertRaises(ValidationError):
+            self.result.validate()
 
-    def test_set_bad_status(self):
-        local_result = results.Result(**self.data)
-        with self.assertRaises(results.ResultValidationError):
-            local_result.status = 'foo'
+    def test_missing_state(self):
+        delattr(self.result, 'state')
+        with self.assertRaises(MissingRequiredField):
+            self.result.validate()
 
-    def test_set_bad_state(self):
-        local_result = results.Result(**self.data)
-        with self.assertRaises(results.ResultValidationError):
-            local_result.state = 'foo'
-
-    def test_state_name(self):
-        local_result = results.Result(**self.data)
-        self.assertEqual(local_result.state_name,
-            results.states[result_data['state']])
-
-    def test_status_name(self):
-        local_result = results.Result(**self.data)
-        self.assertEqual(local_result.status_name,
-            results.statuses[result_data['status']])
-
-    def test_serialize(self):
-        local_result = results.Result(**self.data)
-        for k, v in result_data.items():
-            self.assertEqual(v, getattr(local_result, k))
+    def test_serialize_deserialize(self):
+        serialize1 = self.result.serialize()
+        new_result = results.Result.deserialize(serialize1)
+        serialize2 = new_result.serialize()
+        self.assertEqual(serialize1, serialize2)
