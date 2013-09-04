@@ -79,14 +79,13 @@ class SQSProbe(object):
         return self.queue.write(m, delay_seconds=delay)
 
     def submit_result(self, task_result):
-        task_lifetime = 0
         logger.debug("Submitting '%s/%s' result for task %s." % (
-                        task_result.state_name,
-                        task_result.state_type_name,
-                        task_result.id))
-        
+            task_result.state_name,
+            task_result.state_type_name,
+            task_result.id))
+
         return self.conn_mgr.sns.publish(self.topic_arn,
-            json.dumps(task_result.serialize()))
+                                         json.dumps(task_result.serialize()))
 
     def handle_task(self, task):
         previous = self.get_state(task)
@@ -115,11 +114,11 @@ class SQSProbe(object):
             task_run_time = time.time() - task_start
             if attempt <= max_retries:
                 if not previous or previous.state_type == results.SOFT or (
-                        previous.state_type == results.HARD and not 
+                        previous.state_type == results.HARD and not
                         task_result.state == previous.state):
                     logger.debug('Previous state_type is not hard and current '
-                            'state is different than previous state. '
-                            'Resubmitting task.')
+                                 'state is different than previous state. '
+                                 'Resubmitting task.')
                     task_result.state_type = results.SOFT
                     delay = max(config.settings['probe']['retry_delay'] -
                                 task_run_time, 0)

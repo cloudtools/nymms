@@ -30,6 +30,7 @@ CONNECT_MAP = {
     'vpc': ['vpc'],
 }
 
+
 class ConnectionManager(object):
     """ Used to setup and maintain AWS service connections in a single region.
 

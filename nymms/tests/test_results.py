@@ -1,5 +1,4 @@
 import unittest
-import copy
 
 from nymms import results
 from nymms.data_types import ValidationError, MissingRequiredField
@@ -7,12 +6,13 @@ from nymms.data_types import ValidationError, MissingRequiredField
 
 class TestResult(unittest.TestCase):
     def setUp(self):
-        self.result = results.Result('www1:check_http',
-                state=results.OK,
-                state_type=results.HARD,
-                timestamp=123456,
-                output='OK: check_http is ok',
-                task_context={'url': 'http://example.com/'})
+        self.result = results.Result(
+            'www1:check_http',
+            state=results.OK,
+            state_type=results.HARD,
+            timestamp=123456,
+            output='OK: check_http is ok',
+            task_context={'url': 'http://example.com/'})
 
     def test_invalid_state_name(self):
         self.result.state = 'foo'

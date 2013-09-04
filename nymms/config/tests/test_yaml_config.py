@@ -16,4 +16,4 @@ class TestIncludeLoader(unittest.TestCase):
 
     def test_missing_config(self):
         with self.assertRaises(IOError):
-            missing_config = yaml_config.load_config('nonexistant.yaml')
+            yaml_config.load_config('nonexistant.yaml')

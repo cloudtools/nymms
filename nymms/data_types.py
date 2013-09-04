@@ -1,5 +1,4 @@
 import logging
-import time
 import copy
 
 from nymms.exceptions import NymmsException

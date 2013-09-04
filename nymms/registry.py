@@ -13,7 +13,7 @@ class DuplicateEntryError(exceptions.NymmsException):
 
     def __str__(self):
         return "Duplicate entry in '%s' registry for '%s'." % (
-                self.registry._object_type.__name__, self.name)
+            self.registry._object_type.__name__, self.name)
 
 
 class Registry(dict):
@@ -24,8 +24,8 @@ class Registry(dict):
 
     def __setitem__(self, name, value):
         if not isinstance(value, self._object_type):
-            raise TypeError("This registry only accepts objects of type %s." %
-                    (self._object_type.__name__))
+            raise TypeError("This registry only accepts objects of "
+                            "type %s." % (self._object_type.__name__))
 
         if name in self:
             raise DuplicateEntryError(name, value, self)

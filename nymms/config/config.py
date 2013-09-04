@@ -1,4 +1,3 @@
-import os
 import logging
 import copy
 
@@ -20,4 +19,4 @@ def load_config(path='/etc/nymms/nymms.yaml', force=False):
     version, __config_settings = yaml_config.load_config(path)
     settings.update(__config_settings)
     logger.debug("Config loaded from '%s' with version '%s'." % (path,
-        version))
+                                                                 version))

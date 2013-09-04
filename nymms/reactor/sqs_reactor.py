@@ -23,7 +23,7 @@ class InvalidReactorName(Exception):
 
     def __str__(self):
         return "Reactor name '%s' is invalid.  Must not be one of: %s" % (
-                ', '.join(reserved_reactor_names))
+            ', '.join(reserved_reactor_names))
 
 
 class SQSReactor(object):
@@ -62,7 +62,8 @@ class SQSReactor(object):
         self.queue.set_message_class(RawMessage)
 
     def subscribe_queue_to_topic(self):
-        return self.conn_mgr.sns.subscribe_sqs_queue(self.topic_arn, self.queue)
+        return self.conn_mgr.sns.subscribe_sqs_queue(self.topic_arn,
+                                                     self.queue)
 
     def get_domain(self):
         domain = self.state_domain

@@ -1,5 +1,4 @@
 import logging
-import uuid
 import json
 
 logger = logging.getLogger(__name__)
@@ -28,11 +27,12 @@ class StateKeeper(object):
         logger.debug("Creating queue '%s'." % (self.queue_name,))
         self.queue = self.conn_mgr.sqs.create_queue(self.queue_name)
         self.queue.set_message_class(RawMessage)
-        self.topic_arn = self.topic['CreateTopicResponse']\
-                ['CreateTopicResult']['TopicArn']
+        self.topic_arn = self.topic['CreateTopicResponse'][
+            'CreateTopicResult']['TopicArn']
         logger.debug("Subscribing queue '%s' to topic '%s'." % (
             self.queue_name, self.topic_name))
-        return self.conn_mgr.sns.subscribe_sqs_queue(self.topic_arn, self.queue)
+        return self.conn_mgr.sns.subscribe_sqs_queue(self.topic_arn,
+                                                     self.queue)
 
     def record(self, task_result):
         max_attempts = 3
@@ -51,8 +51,10 @@ class StateKeeper(object):
             if previous_state_data:
                 previous_state = results.StateRecord.deserialize(
                     previous_state_data)
-            state_record = results.StateRecord(task_result.id,
-                state=task_result.state, state_type=task_result.state_type,
+            state_record = results.StateRecord(
+                task_result.id,
+                state=task_result.state,
+                state_type=task_result.state_type,
                 timestamp=result_ts)
 
             # By default we ensure that there is no timestamp for a given
@@ -65,7 +67,7 @@ class StateKeeper(object):
                 expected_value = ['timestamp', previous_ts]
                 if int(previous_ts) > result_ts:
                     logger.warning("Found previous state that is newer than "
-                        "the current state.  Discarding.")
+                                   "the current state.  Discarding.")
                     return
                 # If there is a previous state, and the state is HARD AND
                 # the previous state and current state are the same then just
@@ -74,7 +76,7 @@ class StateKeeper(object):
                 if previous_state.state == task_result.state:
                     if previous_state.state_type == results.HARD:
                         logger.warning("HARD state has not changed.  Only "
-                                        "updating timestamp.")
+                                       "updating timestamp.")
                         state_record = previous_state
                         state_record.timestamp = result_ts
 
@@ -107,7 +109,6 @@ class StateKeeper(object):
                                                        origin=result)
             result_object.validate()
         return result_object
-
 
     def run(self):
         while True:

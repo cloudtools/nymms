@@ -15,8 +15,8 @@ CRITICAL = logging.CRITICAL
 _pid = os.getpid()
 
 syslog_socket_paths = {
-        'Darwin': '/var/run/syslog',
-        'Linux': '/dev/log'
+    'Darwin': '/var/run/syslog',
+    'Linux': '/dev/log'
 }
 
 
@@ -43,7 +43,7 @@ def quiet_requests_connpool_logging():
     This sets the paramiko logger to only send WARNING or above messages.
     """
     logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(
-            logging.WARNING)
+        logging.WARNING)
 
 
 def get_syslog_path():
@@ -52,12 +52,13 @@ def get_syslog_path():
         return syslog_socket_paths[system_os]
     except KeyError:
         raise ValueError("Unable to find syslog unix domain socket for os "
-                "'%s'." % (system_os))
+                         "'%s'." % (system_os))
 
 
 def setup_root_logger(stdout=INFO, filename=None, file_level=INFO,
-        file_mode='w', syslog=None, syslog_facility=SysLogHandler.LOG_LOCAL7,
-        syslog_socket_path=None, syslog_tag=None):
+                      file_mode='w', syslog=None,
+                      syslog_facility=SysLogHandler.LOG_LOCAL7,
+                      syslog_socket_path=None, syslog_tag=None):
     """Setup basic logging, including stdout, file, and syslog logging.
 
     Sets up the root logger, deleting any previously configured handlers.  It
@@ -115,10 +116,10 @@ def setup_root_logger(stdout=INFO, filename=None, file_level=INFO,
         Default: None
     """
     base_format = ('pid:' + str(_pid) + ' %(levelname)s '
-        '%(name)s(%(funcName)s):%(lineno)d - %(message)s')
+                   '%(name)s(%(funcName)s):%(lineno)d - %(message)s')
     timed_format = '[%(asctime)s] ' + base_format
     timed_formatter = logging.Formatter(timed_format,
-            datefmt="%Y/%m/%d %H:%M:%S %Z")
+                                        datefmt="%Y/%m/%d %H:%M:%S %Z")
     logger = logging.getLogger()
 
     # Delete all previous handlers.
@@ -146,7 +147,7 @@ def setup_root_logger(stdout=INFO, filename=None, file_level=INFO,
         if not syslog_socket_path:
             syslog_socket_path = get_syslog_path()
         syslog_handler = SysLogHandler(syslog_socket_path,
-                facility=syslog_facility)
+                                       facility=syslog_facility)
         if not syslog_tag:
             syslog_tag = os.path.basename(sys.argv[0])
         syslog_format = syslog_tag + ": " + base_format

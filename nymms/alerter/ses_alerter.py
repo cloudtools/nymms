@@ -11,7 +11,7 @@ class SESAlerter(object):
     def __init__(self, region):
         self.region = region
         self.connection = None
-    
+
     def connect(self):
         self.connection = connect_to_region(self.region)
 

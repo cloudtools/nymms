@@ -24,7 +24,7 @@ class SQSScheduler(object):
         self.queue = self.conn_mgr.sqs.create_queue(self.queue_name)
 
     def send_task(self, task, delay=None):
-        logger.debug("Sending task '%s' to queue '%s'." % (task.id, 
+        logger.debug("Sending task '%s' to queue '%s'." % (task.id,
                                                            self.queue_name))
         m = Message()
         m.set_body(json.dumps(task.serialize()))

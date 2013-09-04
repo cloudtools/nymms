@@ -25,7 +25,7 @@ class TestRegistry(unittest.TestCase):
 
     def test_duplicate_register(self):
         # add a command
-        command = Command('test_command', '/bin/true')
+        Command('test_command', '/bin/true')
         with self.assertRaises(registry.DuplicateEntryError):
             Command('test_command', '/bin/true')
 

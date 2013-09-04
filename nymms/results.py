@@ -1,13 +1,10 @@
-import json
 import time
 import logging
 import copy
 
 logger = logging.getLogger(__name__)
 
-from nymms.data_types import (NymmsDataType,
-                              ValidationError,
-                              MissingRequiredField)
+from nymms.data_types import NymmsDataType, ValidationError
 
 # state constants
 OK = 0
@@ -126,7 +123,7 @@ class StateRecord(NymmsDataType, StateMixin):
     @classmethod
     def decode_value(cls, value):
         try:
-           return int(value)
+            return int(value)
         except ValueError:
             try:
                 return float(value)

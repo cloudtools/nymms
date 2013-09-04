@@ -9,7 +9,7 @@ from nymms.config import yaml_config
 logger = logging.getLogger(__name__)
 
 RESERVED_ATTRIBUTES = ['name', 'address', 'node_monitor', 'monitoring_groups',
-        'command_string']
+                       'command_string']
 
 
 class RegistryMetaClass(type):
@@ -26,7 +26,7 @@ class RegistryMetaClass(type):
     """
     def __new__(cls, name, bases, dct):
         new_class = super(RegistryMetaClass, cls).__new__(cls, name, bases,
-                dct)
+                                                          dct)
         new_class.registry = registry.Registry(new_class)
         return new_class
 
@@ -40,11 +40,11 @@ class NanoResource(object):
         self.name = name
         # Ensure noone tries to set a reserved attribute as an extra
         disallowed_attributes = list(
-                set(RESERVED_ATTRIBUTES) & set(kwargs.keys()))
+            set(RESERVED_ATTRIBUTES) & set(kwargs.keys()))
         if disallowed_attributes:
             raise TypeError("The following are reserved attributes and cannot "
-                    "be used on this resource: %s" % (', '.join(
-                        disallowed_attributes)))
+                            "be used on this resource: %s" % (', '.join(
+                                disallowed_attributes)))
         self.extra_attributes = kwargs
         self._context_cache = None
 
@@ -58,7 +58,7 @@ class NanoResource(object):
     def _context(self, force=False):
         if self._context_cache and not force:
             logger.debug("Returning context cache for %s resource." % (
-                    self.name))
+                self.name))
             return self._context_cache
         logger.debug("Generating context cache for %s resource." % (self.name))
         context_key = self.__class__.__name__.lower()
@@ -88,12 +88,12 @@ class MonitoringGroup(NanoResource):
     def add_node(self, node):
         if not isinstance(node, Node):
             try:
-                monitor = Node.registry[node]
+                node = Node.registry[node]
             except KeyError:
                 logger.error("Unable to find Node '%s' in registry." % (
                     node))
         logger.debug("Adding node '%s' to monitoring group '%s'." % (node.name,
-            self.name))
+                     self.name))
         self.nodes[node.name] = node
         node.monitoring_groups[self.name] = self
 
@@ -114,7 +114,7 @@ class Node(NanoResource):
     context_attributes = ['name', 'address', 'node_monitor']
 
     def __init__(self, name, address=None, node_monitor=None,
-            monitoring_groups=None, **kwargs):
+                 monitoring_groups=None, **kwargs):
         self.name = name
         self.address = address or name
         self.node_monitor = node_monitor
@@ -127,7 +127,7 @@ class Node(NanoResource):
                         group = MonitoringGroup.registry[group]
                     except KeyError:
                         logger.error("Unable to find MonitoringGroup '%s' "
-                                "in registry, exiting." % (group))
+                                     "in registry, exiting." % (group))
                         raise
                 group.add_node(self)
 
@@ -176,7 +176,7 @@ class Monitor(NanoResource):
                         group = MonitoringGroup.registry[group]
                     except KeyError:
                         logger.error("Unable to find MonitoringGroup '%s' in "
-                                "registry." % (group))
+                                     "registry." % (group))
                         raise
                 group.add_monitor(self)
 
@@ -233,11 +233,9 @@ def load_resources(resource_file, reset=False):
     Returns a sha512 hash of the resources.  The resources themselves are
     stored in their individual registries.
     """
-    LOAD_ORDER = [
-            ('commands', Command),
-            ('monitoring_groups', MonitoringGroup),
-            ('monitors', Monitor),
-    ]
+    LOAD_ORDER = [('commands', Command),
+                  ('monitoring_groups', MonitoringGroup),
+                  ('monitors', Monitor)]
 
     logger.info("Loading local resources from %s." % (resource_file))
     version, resources = yaml_config.load_config(resource_file)
