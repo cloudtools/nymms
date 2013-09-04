@@ -1,11 +1,24 @@
+import os
 from setuptools import setup, find_packages
+
+def read(filename):
+    full_path = os.path.join(os.path.dirname(__file__), filename)
+    with open(full_path) as fd:
+        return fd.read()
+
 
 setup(
     name='nymms',
-    version='0.4.0',
+    version='0.4.1',
     author='Michael Barrett',
     author_email='loki77@gmail.com',
     license="New BSD license",
+    url="https://github.com/cloudtools/nymms",
     description='Not Your Mother\'s Monitoring System (NYMMS)',
+    long_description=read('README.rst'),
+    classifiers=[
+        "Topic :: System :: Monitoring",
+        "License :: OSI Approved :: BSD License",
+        "Development Status :: 3 - Alpha"],
     packages=find_packages(),
 )
