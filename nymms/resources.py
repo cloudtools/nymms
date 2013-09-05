@@ -9,6 +9,8 @@ from nymms import registry
 from nymms.utils import commands
 from nymms.config import yaml_config
 
+from jinja2 import Template
+
 
 RESERVED_ATTRIBUTES = ['name', 'address', 'node_monitor', 'monitoring_groups',
                        'command_string']
@@ -206,7 +208,8 @@ class Command(NanoResource):
         for k, v in my_context.values()[0].iteritems():
             if not k == 'name' and not k in local_context:
                 local_context[k] = v
-        return self.command_string.format(**local_context)
+        t = Template(self.command_string)
+        return t.render(local_context)
 
     def execute(self, context, timeout):
         cmd = self.format_command(context)
