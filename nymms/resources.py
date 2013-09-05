@@ -1,4 +1,7 @@
 import logging
+
+logger = logging.getLogger(__name__)
+
 import copy
 from weakref import WeakValueDictionary
 
@@ -6,7 +9,6 @@ from nymms import registry
 from nymms.utils import commands
 from nymms.config import yaml_config
 
-logger = logging.getLogger(__name__)
 
 RESERVED_ATTRIBUTES = ['name', 'address', 'node_monitor', 'monitoring_groups',
                        'command_string']
