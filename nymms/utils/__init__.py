@@ -1,4 +1,5 @@
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +27,13 @@ def retry_on_exception(exception_list, retries=3, reset_func=None,
                         else:
                             time.sleep(delay)
                     logger.warn("%s exception caught.  Retrying %d time(s): "
-                                "%s", e.__class__.__name, retries - i,
+                                "%s", e.__class__.__name__, retries - i,
                                 e.message)
                 i += 1
                 if retries and i > retries:
                     break
             if final_exception:
-                raise final_exception(e.message)
+                raise final_exception(str(e))
             else:
                 raise e
         return wrapped
