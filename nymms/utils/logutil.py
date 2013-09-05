@@ -130,7 +130,7 @@ def setup_root_logger(stdout=INFO, filename=None, file_level=INFO,
     levels = []
 
     if stdout:
-        stdout_handler = logging.StreamHandler()
+        stdout_handler = logging.StreamHandler(sys.stdout)
         stdout_handler.setFormatter(timed_formatter)
         stdout_handler.setLevel(stdout)
         levels.append(stdout)
