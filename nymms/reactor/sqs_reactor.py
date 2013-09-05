@@ -99,7 +99,10 @@ class SQSReactor(object):
         task_result.validate()
         previous = self.get_state(task_result)
         if task_result.state_type == results.HARD:
-            if not previous or not previous.state == task_result.state:
+            if not previous or \
+                    (previous.state_type == results.SOFT and
+                        task_result.state_type == results.HARD) or \
+                    not (previous.state == task_result.state):
                 self.notify(task_result)
 
     def notify(self, task_result):
