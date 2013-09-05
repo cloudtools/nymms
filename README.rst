@@ -24,5 +24,6 @@ Currently the main requirements are:
   being accepted)
 - PyYAML (used in a few backends, will eventually not be a requirement unless
   you need to use those backends)
+- Jinja2 (needed for templating)
 
 .. _`boto pull request`: https://github.com/boto/boto/pull/1414
