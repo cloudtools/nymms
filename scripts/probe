@@ -1,22 +1,17 @@
 #!/usr/bin/env python
 
-import os
-from boto import sqs
-from boto import sns
+from nymms.utils import aws_helper, cli
 
-from nymms.utils import logutil, aws_helper
+parser = cli.NymmsDaemonCommand()
+args = parser.parse_args()
 
-logger = logutil.setup_root_logger(stdout=logutil.INFO,
-        filename='/tmp/nymms-probe-%d.log' % (os.getpid()),
-        file_level=logutil.DEBUG)
-logutil.quiet_boto_logging()
+cli.setup_logging(args.verbose)
 
 from nymms.config import config
-config.load_config('~/git/nymms/conf/config.yaml')
-
-from nymms.resources import (MonitoringGroup, Monitor, Command, Node,
-        load_resources)
+from nymms.resources import load_resources
 from nymms.probe.sqs_probe import SQSProbe
+
+config.load_config(args.config)
 
 resource_version = load_resources(config.settings['resources'])
 region = config.settings['queue_region']

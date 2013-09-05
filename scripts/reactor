@@ -1,23 +1,19 @@
 #!/usr/bin/env python
 
-import os
+from nymms.utils import aws_helper, cli
 
-from nymms.utils import logutil, aws_helper
+parser = cli.NymmsDaemonCommand()
+args = parser.parse_args()
 
-logger = logutil.setup_root_logger(stdout=logutil.INFO,
-        filename='/tmp/nymms-reactor-%d.log' % (os.getpid()),
-        file_level=logutil.DEBUG)
-logutil.quiet_boto_logging()
+cli.setup_logging(args.verbose)
 
 from nymms.config import config
-config.load_config('~/git/nymms/conf/config.yaml')
-
 from nymms.reactor.sqs_reactor import SQSReactor
 from nymms.alerter.ses_alerter import SESAlerter
-from nymms.alerter.log_alerter import LogAlerter
+
+config.load_config(args.config)
 
 alerter = SESAlerter(config.settings['queue_region'])
-#alerter = LogAlerter()
 
 region = config.settings['queue_region']
 conn_mgr = aws_helper.ConnectionManager(region)
@@ -28,6 +24,5 @@ queue_name = config.settings['reactors']['alerting_reactor']['queue_name']
 
 p = SQSReactor('alerting_reactor', conn_mgr, results_topic, [alerter,],
         state_domain, queue_name)
-
 
 p.run()
