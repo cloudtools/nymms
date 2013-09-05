@@ -26,7 +26,7 @@ class SQSProbe(object):
 
     def get_queue(self):
         while True:
-            logger.debug("Attaching to task queue '%s'." % (self.queue_name))
+            logger.debug("Attaching to task queue '%s'.", self.queue_name)
             self.queue = self.conn_mgr.sqs.get_queue(self.queue_name)
             if self.queue:
                 logger.debug('Attached to task queue.')
@@ -35,16 +35,15 @@ class SQSProbe(object):
             time.sleep(2)
 
     def get_topic(self):
-        logger.debug("Attaching to results topic '%s'." % (
-            self.results_topic,))
+        logger.debug("Attaching to results topic '%s'.", self.results_topic)
         self.topic = self.conn_mgr.sns.create_topic(self.results_topic)
         response = self.topic['CreateTopicResponse']
         self.topic_arn = response['CreateTopicResult']['TopicArn']
-        logger.debug("Attached to results topic '%s'." % (self.results_topic,))
+        logger.debug("Attached to results topic '%s'.", self.results_topic)
 
     def get_domain(self):
         domain = self.state_domain
-        logger.debug("Getting state domain '%s' from SDB." % (domain))
+        logger.debug("Getting state domain '%s' from SDB.", domain)
         self.domain = self.conn_mgr.sdb.create_domain(domain)
 
     def get_task(self):
@@ -53,7 +52,7 @@ class SQSProbe(object):
             self.get_queue()
         wait_time = config.settings['probe']['queue_wait_time']
         timeout = config.settings['monitor_timeout'] + 3
-        logger.debug("Getting task from queue '%s'" % (self.queue_name))
+        logger.debug("Getting task from queue '%s'", self.queue_name)
         task_item = self.queue.read(visibility_timeout=timeout,
                                     wait_time_seconds=wait_time)
         task = None
@@ -72,17 +71,16 @@ class SQSProbe(object):
 
     def resubmit_task(self, task, delay):
         task.increment_attempt()
-        logger.debug("Resubmitting task %s with %d second delay." % (
-            task.id, delay))
+        logger.debug("Resubmitting task %s with %d second delay.", task.id,
+                     delay)
         m = Message()
         m.set_body(json.dumps(task.serialize()))
         return self.queue.write(m, delay_seconds=delay)
 
     def submit_result(self, task_result):
-        logger.debug("Submitting '%s/%s' result for task %s." % (
-            task_result.state_name,
-            task_result.state_type_name,
-            task_result.id))
+        logger.debug("Submitting '%s/%s' result for task %s.",
+                     task_result.state_name, task_result.state_type_name,
+                     task_result.id)
 
         return self.conn_mgr.sns.publish(self.topic_arn,
                                          json.dumps(task_result.serialize()))
@@ -94,9 +92,8 @@ class SQSProbe(object):
         max_retries = config.settings['probe']['retry_attempts']
         monitor = Monitor.registry[task.context['monitor']['name']]
         command = monitor.format_command(task.context)
-        logger.debug("Executing %s attempt %d: %s" % (task.id,
-                                                      task.attempt,
-                                                      command))
+        logger.debug("Executing %s attempt %d: %s", task.id, task.attempt,
+                     command)
         task_start = time.time()
         task_result = results.Result(task.id, timestamp=task.created,
                                      task_context=task.context)
@@ -130,11 +127,11 @@ class SQSProbe(object):
     def run(self):
         while True:
             if not self.tasks_received % 10:
-                logger.info('Tasks received: %d' % (self.tasks_received))
-            logger.debug("Queue depth: %d" % (self.queue.count()))
+                logger.info('Tasks received: %d', self.tasks_received)
+            logger.debug("Queue depth: %d", self.queue.count())
             task = self.get_task()
             if not task:
-                logger.debug("Queue '%s' empty." % (self.queue_name))
+                logger.debug("Queue '%s' empty.", self.queue_name)
                 continue
             self.tasks_received += 1
             self.handle_task(task)

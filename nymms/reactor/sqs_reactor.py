@@ -47,33 +47,34 @@ class SQSReactor(object):
         self.get_queue()
         self.subscribe_queue_to_topic()
         self.get_domain()
-        logger.debug("Reactor '%s' initialized." % (reactor_name,))
+        logger.debug("Reactor '%s' initialized.", reactor_name)
 
     def get_topic(self):
-        logger.debug("Attaching to results topic '%s'." % (
-            self.topic_name,))
+        logger.debug("Attaching to results topic '%s'.", self.topic_name)
         self.topic = self.conn_mgr.sns.create_topic(self.topic_name)
         response = self.topic['CreateTopicResponse']
         self.topic_arn = response['CreateTopicResult']['TopicArn']
 
     def get_queue(self):
-        logger.debug("Attaching to queue '%s'." % (self.queue_name))
+        logger.debug("Attaching to queue '%s'.", self.queue_name)
         self.queue = self.conn_mgr.sqs.create_queue(self.queue_name)
         self.queue.set_message_class(RawMessage)
 
     def subscribe_queue_to_topic(self):
+        logger.debug("Subscribing queue %s to topic %s.", self.queue_name,
+                     self.topic_name)
         return self.conn_mgr.sns.subscribe_sqs_queue(self.topic_arn,
                                                      self.queue)
 
     def get_domain(self):
         domain = self.state_domain
-        logger.debug("Getting state domain '%s' from SDB." % (domain))
+        logger.debug("Getting state domain '%s' from SDB.", domain)
         self.domain = self.conn_mgr.sdb.create_domain(domain)
 
     def get_result(self):
         wait_time = self.reactor_config['queue_wait_time']
         timeout = self.reactor_config['visibility_timeout']
-        logger.debug("Getting result from queue '%s'." % (self.queue_name,))
+        logger.debug("Getting result from queue '%s'.", self.queue_name)
         result = self.queue.read(visibility_timeout=timeout,
                                  wait_time_seconds=wait_time)
         result_object = None
@@ -94,18 +95,30 @@ class SQSReactor(object):
         return state
 
     def handle_result(self, task_result, timeout=None):
+        msg_prefix = "%s result " % (task_result.id,)
         if not timeout:
             timeout = self.reactor_config.get('visibility_timeout', 30)
-        task_result.validate()
         previous = self.get_state(task_result)
         if task_result.state_type == results.HARD:
-            if not previous or \
-                    (previous.state_type == results.SOFT and
-                        task_result.state_type == results.HARD) or \
-                    not (previous.state == task_result.state):
-                self.notify(task_result)
+            logger.debug(msg_prefix + "current state_type is HARD. (%s)",
+                         task_result.state_name)
+            if not previous:
+                logger.debug(msg_prefix + "has no previous state.")
+                return self.notify(task_result)
+            if previous.state_type == results.SOFT and \
+                    task_result.state_type == results.HARD:
+                logger.debug(msg_prefix + "previous state_type(%s) was SOFT, "
+                             "current state_type(%s) is HARD.",
+                             previous.state_name, task_result.state_name)
+                return self.notify(task_result)
+            if not (previous.state == task_result.state):
+                logger.debug(msg_prefix + "previous state (%s) does not match "
+                             "current state (%s).", previous.state_name,
+                             task_result.state_name)
+                return self.notify(task_result)
 
     def notify(self, task_result):
+        logger.debug("%s result sent to notifiers.", task_result.id)
         for alerter in self.alerters:
             alerter.alert(task_result)
 
