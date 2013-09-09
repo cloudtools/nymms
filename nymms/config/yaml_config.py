@@ -27,10 +27,9 @@ def open_config_file(config_file):
         # This should only happen with the top level config file, since
         # we use glob.glob on includes
         if e.errno == 2:
-            logger.error("Could not find file '%s'." % (
-                config_file))
+            logger.error("Could not find file '%s'.", config_file)
         elif e.errno == 13:
-            logger.error("Invalid permissions to open '%s'." % (config_file))
+            logger.error("Invalid permissions to open '%s'.", config_file)
         raise
 
 
@@ -56,28 +55,28 @@ def load_config(config_file):
                     files = glob.glob(path)
                     if not files:
                         logger.warning("Include statement '%s' at %s:%d did "
-                                       "not match any files.  "
-                                       "Skipping." % (line, filename, lineno))
+                                       "not match any files. Skipping.", line,
+                                       filename, lineno)
                         continue
                     for f in files:
                         f = os.path.abspath(f)
                         if f in stack:
                             logger.warning("Already parsed %s, skipping "
-                                           "(%s:%d) to avoid infinite "
-                                           "loop." % (f, filename, lineno))
+                                           "(%s:%d) to avoid infinite loop.",
+                                           f, filename, lineno)
                             continue
                         if os.path.isfile(f):
-                            logger.debug("Parsing include (%s:%d): "
-                                         "%s" % (filename, lineno, f))
+                            logger.debug("Parsing include (%s:%d): %s",
+                                         filename, lineno, f)
                             c.extend(recursive_preprocess(f))
                         else:
                             logger.warning("%s is not a regular file, "
-                                           "skipping (%s:%d)." % (f, filename,
-                                                                  lineno))
+                                           "skipping (%s:%d).", f, filename,
+                                           lineno)
                     continue
                 c.append(line)
         return c
-    logger.debug("Loading config file: %s" % (config_file))
+    logger.debug("Loading config file: %s", config_file)
     config = recursive_preprocess(config_file)
     if not config:
         raise EmptyConfig(config_file)
