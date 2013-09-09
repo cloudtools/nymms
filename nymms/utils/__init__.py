@@ -1,5 +1,7 @@
 import logging
 import time
+import imp
+import sys
 
 logger = logging.getLogger(__name__)
 
@@ -38,3 +40,25 @@ def retry_on_exception(exception_list, retries=3, reset_func=None,
                 raise e
         return wrapped
     return decorator
+
+
+def load_class_from_name(fqcn):
+    """ Returns a class given a dot delimited string defining its path. """
+    module_parts = fqcn.split('.')
+    class_name = module_parts[-1]
+    path_parts = module_parts[:-1]
+    current_mod = None
+    for part in path_parts:
+        if current_mod:
+            current_path = current_mod.__path__
+            current_name = '.'.join([current_name, part])
+        else:
+            current_path = sys.path
+            current_name = part
+        try:
+            current_mod = sys.modules[current_name]
+            logger.debug("Module %s already loaded, skipping.", current_name)
+        except KeyError:
+            args = imp.find_module(part, current_path)
+            current_mod = imp.load_module(current_name, *args)
+    return getattr(current_mod, class_name)
