@@ -71,9 +71,6 @@ class StateMixin(object):
     def validate_state_type(self):
         self.state_type = validate_state_type(self.state_type)
 
-    def validate_timestamp(self):
-        self.timestamp = int(self.timestamp or time.time())
-
     @property
     def state_name(self):
         self.validate_state()
@@ -97,6 +94,9 @@ class Result(NymmsDataType, StateMixin):
         self.output = output or ''
         self.task_context = task_context or {}
 
+    def validate_timestamp(self):
+        self.timestamp = int(self.timestamp or time.time())
+
     def _serialize(self):
         self._cleaned['state_name'] = get_state_name(self.state)
         self._cleaned['state_type_name'] = get_state_type_name(self.state_type)
@@ -113,13 +113,20 @@ class Result(NymmsDataType, StateMixin):
 class StateRecord(NymmsDataType, StateMixin):
     required_fields = ['state', 'state_type']
 
-    def __init__(self, object_id, timestamp=None, state=None, state_type=None,
-                 origin=None):
+    def __init__(self, object_id, last_update=None, last_state_change=None,
+                 state=None, state_type=None, origin=None):
         super(StateRecord, self).__init__(object_id=object_id, origin=origin)
-        self.timestamp = timestamp
+        self.last_update = last_update
+        self.last_state_change = last_state_change
         self.state = state
         self.state_type = state_type
         self._cleaned = {}
+
+    def validate_last_update(self):
+        self.last_update = int(self.last_update or time.time())
+
+    def validate_last_state_change(self):
+        self.last_state_change = int(self.last_state_change or time.time())
 
     @classmethod
     def decode_value(cls, value):
