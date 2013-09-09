@@ -55,3 +55,26 @@ class ConnectionManager(object):
         conn = connect_to_region(self.region, **self.params)
         setattr(self, attr, conn)
         return conn
+
+
+class SNSTopic(object):
+    def __init__(self, conn_mgr, topic_name):
+        self._conn = conn_mgr.sns
+        self._topic_name = topic_name
+        self._topic_arn = None
+
+    def _setup_topic(self):
+        if self._topic_arn:
+            return
+
+        conn = self._conn
+        response = conn.create_topic(self._topic_name)['CreateTopicResponse']
+        self._topic_arn = response['CreateTopicResult']['TopicArn']
+
+    def publish(self, *args, **kwargs):
+        self._setup_topic()
+        return self._conn.publish(self._topic_arn, *args, **kwargs)
+
+    def subscribe_sqs_queue(self, *args, **kwargs):
+        self._setup_topic()
+        return self._conn.subscribe_sqs_queue(self._topic_arn, *args, **kwargs)
