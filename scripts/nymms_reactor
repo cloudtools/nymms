@@ -8,21 +8,20 @@ args = parser.parse_args()
 cli.setup_logging(args.verbose)
 
 from nymms.config import config
-from nymms.reactor.sqs_reactor import SQSReactor
-from nymms.alerter.ses_alerter import SESAlerter
+from nymms.reactor.aws_reactor import AWSReactor
 
 config.load_config(args.config)
-
-alerter = SESAlerter(config.settings['queue_region'])
 
 region = config.settings['queue_region']
 conn_mgr = aws_helper.ConnectionManager(region)
 
 results_topic = config.settings['results_topic']
 state_domain = config.settings['states']['domain']
-queue_name = config.settings['reactors']['alerting_reactor']['queue_name']
+queue_name = config.settings['reactor']['queue_name']
+handler_config_path = config.settings['reactor']['handler_config_path']
+wait_time = config.settings['reactor']['queue_wait_time']
+visibility_timeout = config.settings['reactor']['visibility_timeout']
 
-p = SQSReactor('alerting_reactor', conn_mgr, results_topic, [alerter,],
-        state_domain, queue_name)
+daemon = AWSReactor(conn_mgr, results_topic, state_domain, queue_name)
 
-p.run()
+daemon.run(handler_config_path, wait_time, visibility_timeout)
