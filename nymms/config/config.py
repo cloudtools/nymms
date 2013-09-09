@@ -11,7 +11,7 @@ settings = None
 version = None
 
 
-def load_config(path='/etc/nymms/nymms.yaml', force=False):
+def load_config(path, force=False):
     global settings, version, DEFAULTS
     if settings and not force:
         return
