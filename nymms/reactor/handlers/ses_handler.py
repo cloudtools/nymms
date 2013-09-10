@@ -47,6 +47,8 @@ class EmailHardStates(SESHandler):
     def filter(self, result, previous_state):
         if result.state_type == results.HARD:
             logger.debug("%s state_type is HARD.", result.id)
-            if not previous_state or not previous_state.state == result.state:
+            if (not previous_state or
+                    not previous_state.state == result.state or
+                    not previous_state.state_type == result.state_type):
                 return True
         return False
