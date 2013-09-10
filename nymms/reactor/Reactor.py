@@ -63,13 +63,13 @@ class Reactor(object):
         for handler_name, handler in self._handlers.iteritems():
             try:
                 handler._process(result, previous_state)
-            except Exception as e:
+            except Exception:
                 logutil.log_exception("Unhandled %s handler "
                                       "exception:" % (handler_name,), logger)
                 continue
         try:
             self.save_state(result.id, result, previous_state)
-        except OutOfDateState as e:
+        except OutOfDateState:
             pass
 
     def run(self, handler_config_path, **kwargs):

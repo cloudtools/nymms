@@ -25,13 +25,13 @@ class SESHandler(Handler):
 
     def _send_email(self, result, previous_state):
         self._connect()
-        subject  = Template(self.config['subject_template'])
+        subject = Template(self.config['subject_template'])
         body = Template(self.config['body_template'])
         sender = self.config['sender']
         recipients = self.config['recipients']
         result_data = result.serialize()
         logger.debug("Sending SES alert to %s as %s for %s.",
-                          recipients, sender, result.id)
+                     recipients, sender, result.id)
         self._aws_conn.ses.send_email(
             source=sender,
             subject=subject.render(result_data),

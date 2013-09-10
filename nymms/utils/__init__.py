@@ -48,6 +48,7 @@ def load_class_from_name(fqcn):
     class_name = module_parts[-1]
     path_parts = module_parts[:-1]
     current_mod = None
+    current_name = None
     for part in path_parts:
         if current_mod:
             current_path = current_mod.__path__

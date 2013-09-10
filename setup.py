@@ -4,6 +4,7 @@ import glob
 
 src_dir = os.path.dirname(__file__)
 
+
 def read(filename):
     full_path = os.path.join(src_dir, filename)
     with open(full_path) as fd:
@@ -12,7 +13,7 @@ def read(filename):
 
 setup(
     name='nymms',
-    version='0.2.1',
+    version='0.2.2',
     author='Michael Barrett',
     author_email='loki77@gmail.com',
     license="New BSD license",

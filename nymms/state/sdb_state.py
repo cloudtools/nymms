@@ -5,8 +5,6 @@ logger = logging.getLogger(__name__)
 from nymms import results
 from nymms.exceptions import OutOfDateState
 
-from boto.exception import SDBResponseError
-
 
 class SDBStateBackend(object):
     def __init__(self, conn, domain_name):

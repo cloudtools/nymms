@@ -4,7 +4,6 @@ from logging.handlers import TimedRotatingFileHandler
 logger = logging.getLogger(__name__)
 
 from nymms.reactor.handlers.Handler import Handler
-from jinja2 import Template
 
 
 class LogHandler(Handler):

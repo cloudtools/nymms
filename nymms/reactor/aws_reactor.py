@@ -1,9 +1,5 @@
-import uuid
 import logging
 import json
-import glob
-import os
-import imp
 
 logger = logging.getLogger(__name__)
 
