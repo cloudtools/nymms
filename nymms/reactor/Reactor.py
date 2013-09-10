@@ -5,6 +5,7 @@ import sys
 
 from nymms.config import yaml_config
 from nymms.utils import load_class_from_name, logutil
+from nymms.exceptions import OutOfDateState
 
 logger = logging.getLogger(__name__)
 
@@ -14,16 +15,20 @@ class Reactor(object):
         self._handlers = {}
         logger.debug(self.__class__.__name__ + " initialized.")
 
-    def _load_handlers(self, handler_config_path, force=False):
+    def _load_handlers(self, handler_config_path, **kwargs):
         base_path = os.path.expanduser(handler_config_path)
         conf_files = glob.glob(os.path.join(base_path, '*.conf'))
         logger.debug("Loading handlers from %s", handler_config_path)
         for f in conf_files:
             handler_name = os.path.split(f)[1][:-5]
-            if handler_name in self._handlers and not force:
-                logger.debug("Handler %s already loaded, skipping.",
-                             handler_name)
-                continue
+            # We could eventually have the handlers get loaded everytime and
+            # update them if their config has changed (via config_version
+            # below).  For now lets not get that tricky.
+            if handler_name in self._handlers:
+                if not kwargs.get('force_load_handlers', False):
+                    logger.debug("Handler %s already loaded, skipping.",
+                                 handler_name)
+                    continue
             conf_version, conf = yaml_config.load_config(f)
             enabled = conf.pop('enabled', False)
             if not enabled:
@@ -39,14 +44,21 @@ class Reactor(object):
             logger.error("No handlers loaded.  Exiting.")
             sys.exit(1)
 
-    def get_result(self):
+    def get_result(self, **kwargs):
         raise NotImplementedError
 
+    # TODO: This calls on _state_backend but setting up of the _state_backend
+    #       needs to be handled in the subclass.  Not sure how I should handle
+    #       this, but I really like the idea of these being base class
+    #       methods since in reality all reactors should have some sort of
+    #       state backend, even if its a no-op
     def get_state(self, task_id):
-        raise NotImplementedError
+        return self._state_backend.get_state(task_id)
 
-    def handle_result(self, result):
-        msg_prefix = "%s result" % (result.id,)
+    def save_state(self, task_id, result, previous):
+        return self._state_backend.save_state(task_id, result, previous)
+
+    def handle_result(self, result, **kwargs):
         previous_state = self.get_state(result.id)
         for handler_name, handler in self._handlers.iteritems():
             try:
@@ -55,17 +67,21 @@ class Reactor(object):
                 logutil.log_exception("Unhandled %s handler "
                                       "exception:" % (handler_name,), logger)
                 continue
+        try:
+            self.save_state(result.id, result, previous_state)
+        except OutOfDateState as e:
+            pass
 
-    def run(self, handler_config_path):
+    def run(self, handler_config_path, **kwargs):
         """ This will run in a tight loop. It is expected that the subclass's
         get_result() method will introduce a delay if the results queue is
         empty.
         """
-        self._load_handlers(handler_config_path)
+        self._load_handlers(handler_config_path, **kwargs)
         while True:
-            result = self.get_result()
+            result = self.get_result(**kwargs)
             if not result:
                 logger.debug('Result queue empty.')
                 continue
-            self.handle_result(result)
+            self.handle_result(result, **kwargs)
             result.delete()

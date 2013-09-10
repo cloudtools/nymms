@@ -10,21 +10,21 @@ logger = logging.getLogger(__name__)
 from nymms import results
 from nymms.reactor.Reactor import Reactor
 from nymms.utils.aws_helper import SNSTopic
+from nymms.state.sdb_state import SDBStateBackend
 
 from boto.sqs.message import RawMessage
 
 
 class AWSReactor(Reactor):
-    def __init__(self, conn_mgr, topic_name, state_domain_name, queue_name):
+    def __init__(self, conn_mgr, topic_name, state_domain_name, queue_name,
+                 state_backend=SDBStateBackend):
         self._conn = conn_mgr
         self._topic_name = topic_name
-        self._state_domain_name = state_domain_name
         self._queue_name = queue_name
         self._topic = None
         self._queue = None
-        self._state_domain = None
-        self._handlers = {}
-        logger.debug(self.__class__.__name__ + " initialized.")
+        self._state_backend = state_backend(conn_mgr.sdb, state_domain_name)
+        super(AWSReactor, self).__init__()
 
     def _setup_queue(self):
         if self._queue:
@@ -42,14 +42,9 @@ class AWSReactor(Reactor):
                      self._topic_name)
         self._topic.subscribe_sqs_queue(self._queue)
 
-    def _setup_state_domain(self):
-        if self._state_domain:
-            return
-        conn = self._conn.sdb
-        logger.debug("setting up state domain %s", self._state_domain_name)
-        self._state_domain = conn.create_domain(self._state_domain_name)
-
-    def get_result(self, wait_time=0, visibility_timeout=None):
+    def get_result(self, **kwargs):
+        wait_time = kwargs.get('wait_time', 0)
+        visibility_timeout = kwargs.get('visibility_timeout', None)
         self._setup_queue()
         self._setup_topic()
         logger.debug("Getting result from queue %s.", self._queue_name)
@@ -63,22 +58,3 @@ class AWSReactor(Reactor):
                                                     origin=result)
             result_obj.validate()
         return result_obj
-
-    def get_state(self, task_id):
-        self._setup_state_domain()
-        state_item = self._state_domain.get_item(task_id,
-                                                 consistent_read=True)
-        state = None
-        if state_item:
-            state = results.StateRecord.deserialize(state_item)
-        return state
-
-    def run(self, handler_config_path, wait_time, visibility_timeout):
-        self._load_handlers(handler_config_path)
-        while True:
-            result = self.get_result(wait_time, visibility_timeout)
-            if not result:
-                logger.debug('Result queue empty.')
-                continue
-            self.handle_result(result)
-            result.delete()
