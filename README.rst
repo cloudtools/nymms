@@ -25,8 +25,7 @@ Requirements
 Currently the main requirements are:
 
 - Python (2.7 - may work on older versions, haven't tested)
-- boto (It currently requires this `boto pull request`_, which is very close to
-  being accepted)
+- boto
 - PyYAML (used in a few backends, will eventually not be a requirement unless
   you need to use those backends)
 - Jinja2 (needed for templating)
