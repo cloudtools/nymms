@@ -7,13 +7,12 @@ class TestCommands(unittest.TestCase):
     def test_execute_failure(self):
         with self.assertRaises(commands.CommandFailure):
             # Non-existant command
-            out, err = commands.execute('xxxps auwwwx', 10)
+            out = commands.execute('xxxps auwwwx', 10)
 
     def test_execute_timeout(self):
         with self.assertRaises(commands.CommandTimeout):
-            out, err = commands.execute('sleep 2', 1)
+            out = commands.execute('sleep 2', 1)
 
     def test_execute_success(self):
-        out, err = commands.execute('echo test', 10)
+        out = commands.execute('echo test', 10)
         self.assertEqual(out, 'test\n')
-        self.assertEqual(err, '')
