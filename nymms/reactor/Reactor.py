@@ -4,7 +4,7 @@ import os
 import sys
 
 from nymms.config import yaml_config
-from nymms.utils import load_class_from_name, logutil
+from nymms.utils import load_object_from_string, logutil
 from nymms.exceptions import OutOfDateState
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ class Reactor(object):
                 continue
             cls_string = conf.pop('handler_class')
             logger.debug('Initializing handler %s.', handler_name)
-            handler_cls = load_class_from_name(cls_string)
+            handler_cls = load_object_from_string(cls_string)
             self._handlers[handler_name] = handler_cls(conf)
 
         if not self._handlers:

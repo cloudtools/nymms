@@ -1,6 +1,6 @@
 import logging
 import time
-import imp
+import importlib
 import sys
 
 logger = logging.getLogger(__name__)
@@ -42,24 +42,16 @@ def retry_on_exception(exception_list, retries=3, reset_func=None,
     return decorator
 
 
-def load_class_from_name(fqcn):
-    """ Returns a class given a dot delimited string defining its path. """
+def load_object_from_string(fqcn):
+    """ Given a '.' delimited string representing the full path to an object
+    (function, class, variable) inside a module, return that object.  Example:
+
+    load_object_from_string('os.path.basename')
+    load_object_from_string('logging.Logger')
+    etc
+    """
     module_parts = fqcn.split('.')
-    class_name = module_parts[-1]
+    object_name = module_parts[-1]
     path_parts = module_parts[:-1]
-    current_mod = None
-    current_name = None
-    for part in path_parts:
-        if current_mod:
-            current_path = current_mod.__path__
-            current_name = '.'.join([current_name, part])
-        else:
-            current_path = sys.path
-            current_name = part
-        try:
-            current_mod = sys.modules[current_name]
-            logger.debug("Module %s already loaded, skipping.", current_name)
-        except KeyError:
-            args = imp.find_module(part, current_path)
-            current_mod = imp.load_module(current_name, *args)
-    return getattr(current_mod, class_name)
+    module = importlib.import_module('.'.join(path_parts))
+    return getattr(module, object_name)
