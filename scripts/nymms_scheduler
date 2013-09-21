@@ -16,7 +16,7 @@ config.load_config(args.config)
 resource_version = load_resources(config.settings['resources'])
 
 be = YamlNodeBackend(config.settings['nodes'])
-conn_mgr = aws_helper.ConnectionManager(config.settings['queue_region'])
+conn_mgr = aws_helper.ConnectionManager(config.settings['region'])
 
-s = SQSScheduler(conn_mgr, config.settings['tasks']['name'], be)
+s = SQSScheduler(conn_mgr, config.settings['tasks_queue'], be)
 s.run()
