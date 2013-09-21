@@ -8,7 +8,6 @@ from boto.sqs.message import Message
 from nymms.tasks import Task
 from nymms.probe.Probe import Probe
 from nymms.state.sdb_state import SDBStateBackend
-from nymms import defaults
 from nymms.utils.aws_helper import SNSTopic
 
 
@@ -37,8 +36,8 @@ class SQSProbe(Probe):
 
     def get_task(self, **kwargs):
         self._setup_queue()
-        wait_time = kwargs.get('queue_wait_time', defaults.TASK_WAIT_TIME)
-        timeout = kwargs.get('monitor_timeout', defaults.MONITOR_TIMEOUT) + 3
+        wait_time = kwargs.get('queue_wait_time')
+        timeout = kwargs.get('monitor_timeout') + 3
         logger.debug("Getting task from queue %s.", self._queue_name)
         task_item = self._queue.read(visibility_timeout=timeout,
                                      wait_time_seconds=wait_time)

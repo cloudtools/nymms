@@ -2,7 +2,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from nymms import defaults, results
+from nymms import results
 from nymms.resources import Monitor
 from nymms.utils import commands
 
@@ -32,14 +32,11 @@ class Probe(object):
         log_prefix = "%s - " % (task.id,)
         previous_state = self.get_state(task.id)
         # check if the timeout is defined on the task first, if not then
-        # go with what was passed into handle_task via run, if all else fails
-        # fall back to a reasonable timeout
+        # go with what was passed into handle_task via run
         timeout = task.context.get('monitor_timeout',
-                                   kwargs.get('monitor_timeout',
-                                              defaults.MONITOR_TIMEOUT))
+                                   kwargs.get('monitor_timeout'))
         max_retries = task.context.get('max_retries',
-                                       kwargs.get('max_retries',
-                                                  defaults.MAX_RETRIES))
+                                       kwargs.get('max_retries'))
         last_attempt = int(task.attempt)
         current_attempt = last_attempt + 1
         monitor = Monitor.registry[task.context['monitor']['name']]
@@ -70,10 +67,8 @@ class Probe(object):
                                  'state is different than previous state. '
                                  'Resubmitting task.')
                     result.state_type = results.SOFT
-                    default_retry_delay = defaults.MONITOR_RETRY_DELAY
                     delay = task.context.get('retry_delay',
-                                             kwargs.get('retry_delay',
-                                                        default_retry_delay))
+                                             kwargs.get('retry_delay'))
                     delay = max(delay, 0)
                     self.resubmit_task(task, delay)
             else:
