@@ -7,23 +7,32 @@ from nymms.config import yaml_config
 
 DEFAULTS = {
     'monitor_timeout': 15,
-    'queue_region': 'us-east-1',
     'resources': '/etc/nymms/resources.yaml',
-    'nodes': '/etc/nymms/nodes.yaml',
+    'region': 'us-east-1',
     'state_domain': 'nymms_state',
     'tasks_queue': 'nymms_tasks',
     'results_topic': 'nymms_results',
 
-    'probe.max_retries': 3,
-    'probe.queue_wait_time': 20,
-    'probe.retry_delay': 30,
+    'probe': {
+        'max_retries': 3,
+        'queue_wait_time': 20,
+        'retry_delay': 30
+    },
 
-    'reactor.handler_config_path': '/etc/nymms/handlers',
-    'reactor.queue_name': 'reactor_queue',
-    'reactor.queue_wait_time': 20,
-    'reactor.visibility_timeout': 30,
+    'reactor': {
+        'handler_config_path': '/etc/nymms/handlers',
+        'queue_name': 'reactor_queue',
+        'queue_wait_time': 20,
+        'visibility_timeout': 30,
+    },
 
-    'scheduler.interval': 300,
+    'scheduler': {
+        'interval': 300,
+        'backend': 'nymms.scheduler.backends.yaml_backend.YamlBackend',
+        'backend_args': {
+            'path': '/etc/nymms/nodes.yaml',
+        }
+    },
 }
 
 settings = None
