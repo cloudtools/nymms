@@ -3,6 +3,10 @@
 from nymms.utils import aws_helper, cli
 
 parser = cli.NymmsDaemonCommand()
+parser.add_argument('--realm',
+                    help="If specified this probe will only execute monitors "
+                         "in the given realm.")
+        
 args = parser.parse_args()
 
 cli.setup_logging(args.verbose)
@@ -18,6 +22,8 @@ region = config.settings['region']
 conn_mgr = aws_helper.ConnectionManager(region)
 
 tasks_queue = config.settings['tasks_queue']
+if args.realm:
+    tasks_queue += '_REALM_' + args.realm
 results_topic = config.settings['results_topic']
 state_domain = config.settings['state_domain']
 wait_timeout = config.settings['probe']['queue_wait_time']

@@ -17,19 +17,38 @@ class AWSScheduler(Scheduler):
         self._node_backend = node_backend
         self._conn = conn_mgr
         self._queue_name = task_queue
-        self._queue = None
+        self._default_queue = None
+        self._realm_queues = {}
         logger.debug(self.__class__.__name__ + " initialized.")
 
+    def _setup_realm(self, realm):
+        if realm in self._realm_queues:
+            return
+        queue_name = self._queue_name + '_REALM_' + realm
+        logger.debug("setting up realm queue %s", queue_name)
+        self._realm_queues[realm] = self._conn.sqs.create_queue(queue_name)
+
     def _setup_queue(self):
-        if self._queue:
+        if self._default_queue:
             return
         logger.debug("setting up queue %s", self._queue_name)
-        self._queue = self._conn.sqs.create_queue(self._queue_name)
+        self._default_queue = self._conn.sqs.create_queue(self._queue_name)
+
+    def _choose_queue(self, task):
+        realm = task.context['realm']
+        print "REALM: %s" % (realm)
+        if realm:
+            self._setup_realm(realm)
+            queue = self._realm_queues[realm]
+        else:
+            self._setup_queue()
+            queue = self._default_queue
+        return queue
 
     def submit_task(self, task, **kwargs):
-        self._setup_queue()
+        queue = self._choose_queue(task)
         logger.debug("Sending task '%s' to queue '%s'.", task.id,
-                     self._queue_name)
+                     queue.name)
         m = Message()
         m.set_body(json.dumps(task.serialize()))
-        return self._queue.write(m)
+        return queue.write(m)
