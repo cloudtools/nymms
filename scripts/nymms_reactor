@@ -17,10 +17,10 @@ conn_mgr = aws_helper.ConnectionManager(region)
 
 results_topic = config.settings['results_topic']
 state_domain = config.settings['state_domain']
-queue_name = config.settings['reactor.queue_name']
-handler_config_path = config.settings['reactor.handler_config_path']
-wait_time = config.settings['reactor.queue_wait_time']
-visibility_timeout = config.settings['reactor.visibility_timeout']
+queue_name = config.settings['reactor'['queue_name']
+handler_config_path = config.settings['reactor']['handler_config_path']
+wait_time = config.settings['reactor']['queue_wait_time']
+visibility_timeout = config.settings['reactor']['visibility_timeout']
 
 daemon = AWSReactor(conn_mgr, results_topic, state_domain, queue_name)
 

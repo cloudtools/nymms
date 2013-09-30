@@ -9,14 +9,21 @@ cli.setup_logging(args.verbose)
 
 from nymms.config import config
 from nymms.resources import load_resources
-from nymms.scheduler.sqs_scheduler import SQSScheduler, YamlNodeBackend
+from nymms.scheduler.aws_scheduler import AWSScheduler
+from nymms.utils import load_object_from_string
+
 
 config.load_config(args.config)
+settings = config.settings
 
-resource_version = load_resources(config.settings['resources'])
+resource_version = load_resources(settings['resources'])
 
-be = YamlNodeBackend(config.settings['nodes'])
+backend_cls = load_object_from_string(settings['scheduler']['backend'])
+backend_args = settings['scheduler']['backend_args']
+backend = backend_cls(**backend_args)
+interval = settings['scheduler']['interval']
+
 conn_mgr = aws_helper.ConnectionManager(config.settings['region'])
 
-s = SQSScheduler(conn_mgr, config.settings['tasks_queue'], be)
-s.run()
+s = AWSScheduler(backend, conn_mgr, config.settings['tasks_queue'])
+s.run(interval=interval)

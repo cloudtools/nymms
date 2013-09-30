@@ -20,10 +20,10 @@ conn_mgr = aws_helper.ConnectionManager(region)
 tasks_queue = config.settings['tasks_queue']
 results_topic = config.settings['results_topic']
 state_domain = config.settings['state_domain']
-wait_timeout = config.settings['probe.queue_wait_time']
+wait_timeout = config.settings['probe']['queue_wait_time']
 monitor_timeout = config.settings['monitor_timeout']
-max_retries = config.settings['probe.max_retries']
-retry_delay = config.settings['probe.retry_delay']
+max_retries = config.settings['probe']['max_retries']
+retry_delay = config.settings['probe']['retry_delay']
 
 daemon = SQSProbe(conn_mgr, tasks_queue, results_topic, state_domain)
 daemon.run(monitor_timeout=monitor_timeout,

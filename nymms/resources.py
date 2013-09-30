@@ -76,9 +76,12 @@ class NanoResource(object):
 
 
 class MonitoringGroup(NanoResource):
-    def __init__(self, name, monitors=None, nodes=None, **kwargs):
+    context_attributes = ['name', 'realm']
+
+    def __init__(self, name, realm=None, monitors=None, nodes=None, **kwargs):
         self.nodes = WeakValueDictionary()
         self.monitors = WeakValueDictionary()
+        self.realm = realm
 
         super(MonitoringGroup, self).__init__(name, **kwargs)
 
@@ -115,11 +118,12 @@ class MonitoringGroup(NanoResource):
 
 
 class Node(NanoResource):
-    context_attributes = ['name', 'address', 'node_monitor']
+    context_attributes = ['name', 'realm', 'address', 'node_monitor']
 
-    def __init__(self, name, address=None, node_monitor=None,
+    def __init__(self, name, realm=None, address=None, node_monitor=None,
                  monitoring_groups=None, **kwargs):
         self.name = name
+        self.realm = realm
         self.address = address or name
         self.node_monitor = node_monitor
         self.monitoring_groups = WeakValueDictionary()
@@ -158,10 +162,12 @@ class Node(NanoResource):
 
 
 class Monitor(NanoResource):
-    context_attributes = ['name']
+    context_attributes = ['name', 'realm']
 
-    def __init__(self, name, command, monitoring_groups=None, **kwargs):
+    def __init__(self, name, command, realm=None, monitoring_groups=None,
+                 **kwargs):
         self.name = name
+        self.realm = realm
         if not isinstance(command, Command):
             try:
                 command = Command.registry[command]
@@ -169,7 +175,6 @@ class Monitor(NanoResource):
                 logger.error("Unable to find Command '%s' in registry." % (
                     command))
                 raise
-        self.command = command
 
         self.command = command
         self.monitoring_groups = WeakValueDictionary()
