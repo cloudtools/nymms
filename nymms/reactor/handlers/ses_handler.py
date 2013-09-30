@@ -52,12 +52,13 @@ class EmailHardStates(SESHandler):
                 return True
             if not previous_state.state == result.state:
                 logger.debug("Previous state (%s) does not match current "
-                             "state (%s).", previous.state_name,
+                             "state (%s).", previous_state.state_name,
                              result.state_name)
                 return True
             if not previous_state.state_type == result.state_type:
                 logger.debug("Previous state_type (%s) does not match current "
-                             "state_type (%s).", previous.state_type_name,
+                             "state_type (%s).",
+                             previous_state.state_type_name,
                              result.state_type_name)
                 return True
         return False
