@@ -13,7 +13,7 @@ def read(filename):
 
 setup(
     name='nymms',
-    version='0.2.2',
+    version='0.2.3',
     author='Michael Barrett',
     author_email='loki77@gmail.com',
     license="New BSD license",
