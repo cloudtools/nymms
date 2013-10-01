@@ -36,7 +36,6 @@ class AWSScheduler(Scheduler):
 
     def _choose_queue(self, task):
         realm = task.context['realm']
-        print "REALM: %s" % (realm)
         if realm:
             self._setup_realm(realm)
             queue = self._realm_queues[realm]
