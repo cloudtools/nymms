@@ -13,4 +13,4 @@ class YamlBackend(Backend):
     def load_nodes(self):
         version, nodes = yaml_config.load_config(self.path)
         logger.debug("Loaded node config (%s) from %s.", version, self.path)
-        return nodes['nodes']
+        return nodes
