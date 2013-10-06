@@ -25,5 +25,5 @@ setup(
         "License :: OSI Approved :: BSD License",
         "Development Status :: 3 - Alpha"],
     packages=find_packages(),
-    scripts=glob.glob(os.path.join(src_dir, 'scripts', '*')),
+    scripts=glob.glob(os.path.join(src_dir, 'scripts', 'nymms_*')),
 )
