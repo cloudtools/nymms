@@ -41,7 +41,7 @@ def validate_state(state):
         except ValueError:
             raise exc
     elif isinstance(value, int):
-        if value > 0:
+        if value >= 0:
             return value
     raise exc
 
