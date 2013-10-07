@@ -41,10 +41,8 @@ def validate_state(state):
         except ValueError:
             raise exc
     elif isinstance(value, int):
-        try:
-            return states[value] and value
-        except IndexError:
-            raise exc
+        if value > 0:
+            return value
     raise exc
 
 
