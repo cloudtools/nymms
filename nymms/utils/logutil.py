@@ -54,11 +54,16 @@ def get_syslog_path():
         raise ValueError("Unable to find syslog unix domain socket for os "
                          "'%s'." % (system_os))
 
+DEFAULT_FORMAT = ('pid:' + str(_pid) + ' %(levelname)s %(name)s '
+                  '%(module)s(%(funcName)s):%(lineno)d - %(message)s')
+
 
 def setup_root_logger(stdout=INFO, filename=None, file_level=INFO,
                       file_mode='w', syslog=None,
                       syslog_facility=SysLogHandler.LOG_LOCAL7,
-                      syslog_socket_path=None, syslog_tag=None):
+                      syslog_socket_path=None, syslog_tag=None,
+                      time_format="%Y/%m/%d %H:%M:%S %Z",
+                      message_format=DEFAULT_FORMAT):
     """Setup basic logging, including stdout, file, and syslog logging.
 
     Sets up the root logger, deleting any previously configured handlers.  It
@@ -114,12 +119,20 @@ def setup_root_logger(stdout=INFO, filename=None, file_level=INFO,
         given it will try to determine the name of the command that was
         called, and use that.
         Default: None
+
+    :type time_format: string
+    :param time_format: A time.strftime formatted string to use for the
+        timestamp format.  This will be prepended to stdout and logfiles, but
+        not to syslog (since syslog has it's own timestamp system)
+
+    :type message_format: string
+    :param message_format: A logging.Formatter formatted string to use for
+        the output of log messages.  See the following for variables:
+        http://docs.python.org/2/library/logging.html#logrecord-attributes
     """
-    base_format = ('pid:' + str(_pid) + ' %(levelname)s '
-                   '%(name)s(%(funcName)s):%(lineno)d - %(message)s')
+    base_format = message_format
     timed_format = '[%(asctime)s] ' + base_format
-    timed_formatter = logging.Formatter(timed_format,
-                                        datefmt="%Y/%m/%d %H:%M:%S %Z")
+    timed_formatter = logging.Formatter(timed_format, datefmt=time_format)
     logger = logging.getLogger()
 
     # Delete all previous handlers.
