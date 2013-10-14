@@ -30,4 +30,9 @@ Currently the main requirements are:
   you need to use those backends)
 - Jinja2 (needed for templating)
 
+Optionally:
+
+- pagerduty (0.2.1 https://pypi.python.org/pypi/pagerduty/0.2.1) if you use the
+  pagerduty reactor handler
+
 .. _`boto pull request`: https://github.com/boto/boto/pull/1414
