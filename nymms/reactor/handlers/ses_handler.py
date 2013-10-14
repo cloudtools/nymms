@@ -13,6 +13,15 @@ class SESHandler(Handler):
     """ A basic handler to send alerts to people via email through Amazon's
     SES service.  Sends every result it receives by default.  To filter
     results you should subclass this and provide a _filter method.
+
+    config options:
+      enabled: bool
+      region: string, aws region (us-east-1, etc)
+      sender: string, email address
+      subject_template: string
+      body_template: string
+      recipients: list, email addresses
+      filters: list, filters
     """
     def _connect(self):
         if getattr(self, '_aws_conn', None):
@@ -37,24 +46,3 @@ class SESHandler(Handler):
 
     def process(self, result, previous_state):
         self._send_email(result, previous_state)
-
-
-class EmailHardStates(SESHandler):
-    def filter(self, result, previous_state):
-        if result.state_type == results.HARD:
-            logger.debug("%s state_type is HARD.", result.id)
-            if not previous_state:
-                logger.debug("No previous state found.")
-                return True
-            if not previous_state.state == result.state:
-                logger.debug("Previous state (%s) does not match current "
-                             "state (%s).", previous_state.state_name,
-                             result.state_name)
-                return True
-            if not previous_state.state_type == result.state_type:
-                logger.debug("Previous state_type (%s) does not match current "
-                             "state_type (%s).",
-                             previous_state.state_type_name,
-                             result.state_type_name)
-                return True
-        return False
