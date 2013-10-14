@@ -46,9 +46,11 @@ class Handler(object):
 
     def _process(self, result, previous_state):
         if self._filter(result, previous_state):
-            logger.debug("Filter returned true for %s, reacting.", result.id)
+            logger.debug("Hander %s filters returned true for %s, reacting.",
+                         self.__class__.__name__, result.id)
             return self.process(result, previous_state)
-        logger.debug("Filter returned false for %s, skipping.", result.id)
+        logger.debug("Handler %s filters returned false for %s, skipping.",
+                     self.__class__.__name__, result.id)
 
     def process(self, result, previous_state):
         """ Meant to be overridden by subclasses - should handle the actual
