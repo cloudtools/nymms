@@ -10,12 +10,8 @@ class LogHandler(Handler):
     """ A basic handler to send alerts to a log file via python's logging
     module.
     """
-    def __init__(self, config):
-        self._file_logger = None
-        super(LogHandler, self).__init__(config)
-
     def _setup_logger(self):
-        if self._file_logger:
+        if getattr(self, '_file_logger', None):
             return
         filename = self.config['filename']
         when = self.config['when']

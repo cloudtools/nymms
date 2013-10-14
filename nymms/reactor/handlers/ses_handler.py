@@ -14,12 +14,8 @@ class SESHandler(Handler):
     SES service.  Sends every result it receives by default.  To filter
     results you should subclass this and provide a _filter method.
     """
-    def __init__(self, config):
-        self._aws_conn = None
-        super(SESHandler, self).__init__(config)
-
     def _connect(self):
-        if self._aws_conn:
+        if getattr(self, '_aws_conn', None):
             return
         self._aws_conn = ConnectionManager(region=self.config['region'])
 
