@@ -17,7 +17,7 @@ There are many other goals, but that's a good start.
 Here's a somewhat hard to understand diagram (at least without some
 explanation):
 
-.. image:: https://raw.github.com/cloudtools/nymms/master/docs/images/nymms_arch.png
+.. image:: https://raw.github.com/cloudtools/nymms/master/docs/_static/images/nymms_arch.png
 
 Requirements
 ============
