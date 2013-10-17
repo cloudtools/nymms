@@ -31,6 +31,12 @@ and Sensu_ made heavy use of queues, and all of them are excellent
 monitoring systems that we take heavy influence from)- but I'm hoping to bring
 the two together in useful ways.
 
+Architecture Diagram
+--------------------
+
+.. image:: _static/images/nymms_arch.png
+   :align: center
+
 The Daemons
 -----------
 
