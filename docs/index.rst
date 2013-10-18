@@ -57,13 +57,12 @@ The Daemons
     to triggering an incident in PagerDuty_, to submitting stats to a stats
     system.  Finally the reactor updates the state database with the result.
 
-Queues
-------
+Communication
+-------------
 
-When I use the term *queue* I'm using it a bit loosely.  I've tried to keep
-the interface with the various communication channels simple and easily
-extendible. As of this writing the entire system is very AWS_ based.  We make
-use of the following AWS_ services:
+I've tried to keep the interface with the various communication channels
+simple and easily extendible. As of this writing the entire system is very
+AWS_ based.  We make use of the following AWS_ services:
 
 **SQS:**
     We use SQS as our general queue service.  The scheduler passes tasks to the
