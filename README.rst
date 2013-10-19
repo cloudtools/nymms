@@ -2,6 +2,8 @@
 NYMMS (Not Your Mother's Monitoring System)
 ===========================================
 
+You can find the latest docs (there aren't enough!) at ReadTheDocs_.
+
 NYMMS is a monitoring framework that takes inspiration from a lot of different
 places.
 
@@ -36,3 +38,4 @@ Optionally:
   pagerduty reactor handler
 
 .. _`boto pull request`: https://github.com/boto/boto/pull/1414
+.. _`ReadTheDocs`: http://nymms.readthedocs.org/en/latest/
