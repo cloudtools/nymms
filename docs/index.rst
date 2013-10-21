@@ -112,12 +112,16 @@ can be used as is with NYMMS.  In the future we may come up with other plugin
 formats, but we haven't had a reason to so far.
 
 
-Contents:
+========
+Contents
+========
 
 .. toctree::
    :maxdepth: 2
 
+   config
    demo
+   getting_started
 
 
 
