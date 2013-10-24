@@ -37,8 +37,13 @@ class Reactor(object):
                 continue
             cls_string = conf.pop('handler_class')
             logger.debug('Initializing handler %s.', handler_name)
-            handler_cls = load_object_from_string(cls_string)
-            self._handlers[handler_name] = handler_cls(conf)
+            try:
+                handler_cls = load_object_from_string(cls_string)
+                self._handlers[handler_name] = handler_cls(conf)
+            except Exception as e:
+                logutil.log_exception("Skipping handler %s due to "
+                    "unhandled exception:" % (handler_name), logger)
+                continue
 
         if not self._handlers:
             logger.error("No handlers loaded.  Exiting.")

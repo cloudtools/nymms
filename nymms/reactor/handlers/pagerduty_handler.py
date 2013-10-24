@@ -1,12 +1,21 @@
 import logging
 
+logger = logging.getLogger(__name__)
+
 from nymms.reactor.handlers.Handler import Handler
 from nymms import results
 
 from jinja2 import Template
-import pagerduty
 
-logger = logging.getLogger(__name__)
+try:
+    import pagerduty
+except ImportError:
+    logger.error("Unable to import the pagerduty module.")
+    logger.error("Please install it from here: ")
+    logger.error("  https://pypi.python.org/pypi/pagerduty/")
+    logger.error("(You can use pip, ie: pip install pagerduty)")
+    raise
+
 
 MISSING_SUBJECT = 'Handler %s missing subject_template.'
 
