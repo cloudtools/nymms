@@ -26,6 +26,13 @@ class TestFilters(unittest.TestCase):
         self.result.validate()
         self.assertFalse(filters.ok_state(self.result, self.record))
 
+    def test_not_ok_state(self):
+        self.assertFalse(filters.not_ok_state(self.result, self.record))
+
+        self.result.state = results.WARNING
+        self.result.validate()
+        self.assertTrue(filters.not_ok_state(self.result, self.record))
+
     def test_warning_state(self):
         self.assertFalse(filters.warning_state(self.result, self.record))
 

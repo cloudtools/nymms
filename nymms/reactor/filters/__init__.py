@@ -5,6 +5,14 @@ logger = logging.getLogger(__name__)
 from nymms import results
 
 
+def always_true(result, previous_state):
+    """ Not really necessary since no filters results in an always true result,
+    but this is useful to show an example of what a filter is without actually
+    doing anything.
+    """
+    return True
+
+
 def hard_state(result, previous_state):
     if result.state_type == results.HARD:
         logger.debug("%s state_type is HARD.", result.id)
@@ -57,9 +65,5 @@ def unknown_state(result, previous_state):
     return False
 
 
-def always_true(result, previous_state):
-    """ Not really necessary since no filters results in an always true result,
-    but this is useful to show an example of what a filter is without actually
-    doing anything.
-    """
-    return True
+def not_ok_state(result, previous_state):
+    return not(ok_state(result, previous_state))
