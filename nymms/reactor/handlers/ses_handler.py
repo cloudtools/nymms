@@ -3,8 +3,7 @@ import logging
 from nymms.reactor.handlers.Handler import Handler
 from nymms.utils.aws_helper import ConnectionManager
 from nymms import results
-
-from jinja2 import Template
+from nymms.utils.templates import NymmsTemplate
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +29,8 @@ class SESHandler(Handler):
 
     def _send_email(self, result, previous_state):
         self._connect()
-        subject = Template(self.config['subject_template'])
-        body = Template(self.config['body_template'])
+        subject = NymmsTemplate(self.config['subject_template'])
+        body = NymmsTemplate(self.config['body_template'])
         sender = self.config['sender']
         recipients = self.config['recipients']
         result_data = result.serialize()
