@@ -56,6 +56,8 @@ class Probe(object):
                 result.output = e.output
             if isinstance(e, commands.CommandTimeout):
                 result.state = results.UNKNOWN
+                result.output = ("Command timed out after %d seconds." % 
+                                 timeout)
             if current_attempt <= max_retries:
                 # XXX Hate this logic - hope to find a cleaner way to handle
                 #     it someday.
