@@ -46,7 +46,7 @@ class Handler(object):
 
     def _process(self, result, previous_state):
         if self._filter(result, previous_state):
-            logger.debug("Hander %s filters returned true for %s, reacting.",
+            logger.debug("Handler %s filters returned true for %s, reacting.",
                          self.__class__.__name__, result.id)
             return self.process(result, previous_state)
         logger.debug("Handler %s filters returned false for %s, skipping.",
