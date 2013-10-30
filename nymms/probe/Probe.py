@@ -46,8 +46,13 @@ class Probe(object):
         result = results.Result(task.id, timestamp=task.created,
                                 task_context=task.context)
         result.state_type = results.HARD
+        # Trying to emulate this:
+        # http://nagios.sourceforge.net/docs/3_0/statetypes.html
         try:
             output = monitor.execute(task.context, timeout)
+            if (previous_state and not previous_state.state == results.OK and
+                previous_state.state_type == results.SOFT):
+                    result.state_type = results.SOFT
             result.output = output
             result.state = results.OK
         except commands.CommandException as e:
@@ -63,15 +68,12 @@ class Probe(object):
                 #     it someday.
                 if (not previous_state or
                         previous_state.state_type == results.SOFT or
-                        (previous_state.state_type == results.HARD and not
-                            result.state == previous_state.state)):
-                    logger.debug('Previous state_type is not hard and current '
-                                 'state is different than previous state. '
-                                 'Resubmitting task.')
+                        previous_state.state == results.OK):
                     result.state_type = results.SOFT
                     delay = task.context.get('retry_delay',
                                              kwargs.get('retry_delay'))
                     delay = max(delay, 0)
+                    logger.debug('Resubmitting task with %ds delay.' % delay)
                     self.resubmit_task(task, delay)
             else:
                 logger.debug("Retry limit hit, not resubmitting.")
