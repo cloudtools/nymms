@@ -4,7 +4,8 @@ logger = logging.getLogger(__name__)
 
 from nymms.reactor.handlers.Handler import Handler
 from nymms import results
-from nymms.utils.templates import NymmsTemplate
+
+from jinja2 import Template
 
 try:
     import pagerduty
@@ -48,7 +49,7 @@ class PagerDutyHandler(Handler):
         self._connect()
         subject_template = self.config.get('subject_template',
            MISSING_SUBJECT % (self.__class__.__name__))
-        description = NymmsTemplate(subject_template)
+        description = Template(subject_template)
         result_data = result.serialize()
         for ep in self._endpoints:
             logger.debug("Submitting to pagerduty service_key %s.",

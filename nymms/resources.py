@@ -7,8 +7,9 @@ from weakref import WeakValueDictionary
 
 from nymms import registry
 from nymms.utils import commands
-from nymms.utils.templates import NymmsTemplate
 from nymms.config import yaml_config
+
+from jinja2 import Template
 
 
 RESERVED_ATTRIBUTES = ['name', 'address', 'node_monitor', 'monitoring_groups',
@@ -212,7 +213,7 @@ class Command(NanoResource):
         for k, v in my_context.values()[0].iteritems():
             if not k == 'name' and not k in local_context:
                 local_context[k] = v
-        t = NymmsTemplate(self.command_string)
+        t = Template(self.command_string)
         return t.render(local_context)
 
     def execute(self, context, timeout):
