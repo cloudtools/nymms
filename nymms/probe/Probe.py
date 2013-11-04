@@ -2,6 +2,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+import nymms
 from nymms import results
 from nymms.resources import Monitor
 from nymms.utils import commands
@@ -28,6 +29,29 @@ class Probe(object):
     def submit_result(self, result):
         raise NotImplementedError
 
+    def execute_task(self, task, timeout):
+        log_prefix = "%s - " % (task.id,)
+        monitor = Monitor.registry[task.context['monitor']['name']]
+        command = monitor.format_command(task.context)
+        current_attempt = int(task.attempt) + 1
+        logger.debug(log_prefix + "attempt %d, executing: %s", current_attempt,
+                     command)
+        result = results.Result(task.id, timestamp=task.created,
+                                task_context=task.context)
+        try:
+            output = monitor.execute(task.context, timeout)
+            result.output = output
+            result.state = results.OK
+        except commands.CommandException as e:
+            if isinstance(e, commands.CommandFailure):
+                result.state = e.return_code
+                result.output = e.output
+            if isinstance(e, commands.CommandTimeout):
+                result.state = results.UNKNOWN
+                result.output = ("Command timed out after %d seconds." % 
+                                 timeout)
+        return result
+
     def handle_task(self, task, **kwargs):
         log_prefix = "%s - " % (task.id,)
         previous_state = self.get_state(task.id)
@@ -39,30 +63,17 @@ class Probe(object):
                                        kwargs.get('max_retries'))
         last_attempt = int(task.attempt)
         current_attempt = last_attempt + 1
-        monitor = Monitor.registry[task.context['monitor']['name']]
-        command = monitor.format_command(task.context)
-        logger.debug(log_prefix + "attempt %d, executing: %s", current_attempt,
-                     command)
-        result = results.Result(task.id, timestamp=task.created,
-                                task_context=task.context)
+        result = self.execute_task(task, timeout)
         result.state_type = results.HARD
         # Trying to emulate this:
         # http://nagios.sourceforge.net/docs/3_0/statetypes.html
-        try:
-            output = monitor.execute(task.context, timeout)
+        if result.state == results.OK:
             if (previous_state and not previous_state.state == results.OK and
                 previous_state.state_type == results.SOFT):
                     result.state_type = results.SOFT
-            result.output = output
-            result.state = results.OK
-        except commands.CommandException as e:
-            if isinstance(e, commands.CommandFailure):
-                result.state = e.return_code
-                result.output = e.output
-            if isinstance(e, commands.CommandTimeout):
-                result.state = results.UNKNOWN
-                result.output = ("Command timed out after %d seconds." % 
-                                 timeout)
+        else:
+            logger.debug(log_prefix + "current_attempt: %d, max_retries: %d", 
+                         current_attempt, max_retries)
             if current_attempt <= max_retries:
                 # XXX Hate this logic - hope to find a cleaner way to handle
                 #     it someday.
@@ -77,17 +88,20 @@ class Probe(object):
                     self.resubmit_task(task, delay)
             else:
                 logger.debug("Retry limit hit, not resubmitting.")
-        self.submit_result(result)
+        return result
 
     def run(self, **kwargs):
         """ This will run in a tight loop. It is expected that the subclass's
         get_task() method will introduce a delay if the results queue is
         empty.
         """
+        logger.info("Launching %s version %s.", self.__class__.__name__,
+                    nymms.__version__)
         while True:
             task = self.get_task(**kwargs)
             if not task:
                 logger.debug("Task queue is empty.")
                 continue
-            self.handle_task(task, **kwargs)
+            result = self.handle_task(task, **kwargs)
+            self.submit_result(result)
             task.delete()
