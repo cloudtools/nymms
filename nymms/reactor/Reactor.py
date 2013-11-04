@@ -3,6 +3,7 @@ import glob
 import os
 import sys
 
+import nymms
 from nymms.config import yaml_config
 from nymms.utils import load_object_from_string, logutil
 from nymms.exceptions import OutOfDateState
@@ -82,6 +83,8 @@ class Reactor(object):
         get_result() method will introduce a delay if the results queue is
         empty.
         """
+        logger.info("Launching %s version %s.", self.__class__.__name__,
+                    nymms.__version__)
         self._load_handlers(handler_config_path, **kwargs)
         while True:
             result = self.get_result(**kwargs)

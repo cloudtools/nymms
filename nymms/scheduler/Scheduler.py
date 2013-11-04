@@ -1,6 +1,7 @@
 import logging
 import time
 
+import nymms
 from nymms.resources import Node
 from nymms.tasks import Task
 
@@ -26,6 +27,8 @@ class Scheduler(object):
         raise NotImplementedError
 
     def run(self, **kwargs):
+        logger.info("Launching %s version %s.", self.__class__.__name__,
+                    nymms.__version__)
         while True:
             start = time.time()
             tasks = self.get_tasks()
