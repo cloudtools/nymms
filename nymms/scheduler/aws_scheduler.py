@@ -19,7 +19,7 @@ class AWSScheduler(Scheduler):
         self._queue_name = task_queue
         self._default_queue = None
         self._realm_queues = {}
-        logger.debug(self.__class__.__name__ + " initialized.")
+        super(Scheduler, self).__init__()
 
     def _setup_realm(self, realm):
         if realm in self._realm_queues:

@@ -32,7 +32,7 @@ max_retries = config.settings['probe']['max_retries']
 retry_delay = config.settings['probe']['retry_delay']
 
 daemon = SQSProbe(conn_mgr, tasks_queue, results_topic, state_domain)
-daemon.run(monitor_timeout=monitor_timeout,
+daemon.main(monitor_timeout=monitor_timeout,
            max_retries=max_retries,
            retry_delay=retry_delay,
            queue_wait_time=wait_timeout)

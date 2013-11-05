@@ -4,6 +4,7 @@ import os
 import sys
 
 import nymms
+from nymms.daemon import NymmsDaemon
 from nymms.config import yaml_config
 from nymms.utils import load_object_from_string, logutil
 from nymms.exceptions import OutOfDateState
@@ -11,10 +12,10 @@ from nymms.exceptions import OutOfDateState
 logger = logging.getLogger(__name__)
 
 
-class Reactor(object):
+class Reactor(NymmsDaemon):
     def __init__(self):
         self._handlers = {}
-        logger.debug(self.__class__.__name__ + " initialized.")
+        super(Reactor, self).__init__()
 
     def _load_handlers(self, handler_config_path, **kwargs):
         base_path = os.path.expanduser(handler_config_path)
@@ -83,8 +84,6 @@ class Reactor(object):
         get_result() method will introduce a delay if the results queue is
         empty.
         """
-        logger.info("Launching %s version %s.", self.__class__.__name__,
-                    nymms.__version__)
         self._load_handlers(handler_config_path, **kwargs)
         while True:
             result = self.get_result(**kwargs)

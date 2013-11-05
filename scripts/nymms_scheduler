@@ -26,4 +26,4 @@ interval = settings['scheduler']['interval']
 conn_mgr = aws_helper.ConnectionManager(config.settings['region'])
 
 s = AWSScheduler(backend, conn_mgr, config.settings['tasks_queue'])
-s.run(interval=interval)
+s.main(interval=interval)

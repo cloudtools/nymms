@@ -4,14 +4,12 @@ logger = logging.getLogger(__name__)
 
 import nymms
 from nymms import results
+from nymms.daemon import NymmsDaemon
 from nymms.resources import Monitor
 from nymms.utils import commands
 
 
-class Probe(object):
-    def __init__(self):
-        logger.debug(self.__class__.__name__ + " initialized.")
-
+class Probe(NymmsDaemon):
     # TODO: This calls on _state_backend but setting up of the _state_backend
     #       needs to be handled in the subclass.  Not sure how I should handle
     #       this, but I really like the idea of these being base class
@@ -95,8 +93,6 @@ class Probe(object):
         get_task() method will introduce a delay if the results queue is
         empty.
         """
-        logger.info("Launching %s version %s.", self.__class__.__name__,
-                    nymms.__version__)
         while True:
             task = self.get_task(**kwargs)
             if not task:

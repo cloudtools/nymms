@@ -24,6 +24,6 @@ visibility_timeout = config.settings['reactor']['visibility_timeout']
 
 daemon = AWSReactor(conn_mgr, results_topic, state_domain, queue_name)
 
-daemon.run(handler_config_path,
+daemon.main(handler_config_path,
            wait_time=wait_time,
            visibility_timeout=visibility_timeout)

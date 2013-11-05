@@ -2,18 +2,19 @@ import logging
 import time
 
 import nymms
+from nymms.daemon import NymmsDaemon
 from nymms.resources import Node
 from nymms.tasks import Task
 
 logger = logging.getLogger(__name__)
 
 
-class Scheduler(object):
+class Scheduler(NymmsDaemon):
     task_id_template = "{node[name]}:{monitor[name]}"
 
     def __init__(self, node_backend):
         self._node_backend = node_backend
-        logger.debug(self.__class__.__name__ + " initialized.")
+        super(Scheduler, self).__init__()
 
     def get_tasks(self):
         tasks = {}
@@ -27,8 +28,6 @@ class Scheduler(object):
         raise NotImplementedError
 
     def run(self, **kwargs):
-        logger.info("Launching %s version %s.", self.__class__.__name__,
-                    nymms.__version__)
         while True:
             start = time.time()
             tasks = self.get_tasks()
