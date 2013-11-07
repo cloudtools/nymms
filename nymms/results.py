@@ -88,12 +88,12 @@ class Result(NymmsDataType, StateMixin):
         super(Result, self).__init__(object_id=object_id, origin=origin)
         self.state = state
         self.state_type = state_type
-        self.timestamp = timestamp
+        self.timestamp = timestamp or time.time()
         self.output = output or ''
         self.task_context = task_context or {}
 
     def validate_timestamp(self):
-        self.timestamp = int(self.timestamp or time.time())
+        self.timestamp = int(self.timestamp)
 
     def _serialize(self):
         self._cleaned['state_name'] = get_state_name(self.state)
