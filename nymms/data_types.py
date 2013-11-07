@@ -74,6 +74,11 @@ class NymmsDataType(object):
 
     @classmethod
     def deserialize(cls, data, origin=None):
+        """ Produces a new data type object from a dictionary of data.  The
+        origin object is passed in for further interactions with the system
+        that the object was received from.  For example to delete the object
+        out of a queue.
+        """
         new_data = cls._deserialize(data)
         if not origin:
             origin = data
