@@ -1,26 +1,30 @@
 import logging
 import copy
+import os
 
 logger = logging.getLogger(__name__)
 
 from nymms.config import yaml_config
 
+default_conf_dir = '/etc/nymms'
+
 DEFAULTS = {
     'monitor_timeout': 15,
-    'resources': '/etc/nymms/resources.yaml',
+    'resources': os.path.join(default_conf_dir, 'resources.yaml'),
     'region': 'us-east-1',
     'state_domain': 'nymms_state',
     'tasks_queue': 'nymms_tasks',
     'results_topic': 'nymms_results',
+    'private_context_file': os.path.join(default_conf_dir, 'private.yaml'),
 
     'probe': {
-        'max_retries': 3,
+        'max_retries': 2,
         'queue_wait_time': 20,
         'retry_delay': 30
     },
 
     'reactor': {
-        'handler_config_path': '/etc/nymms/handlers',
+        'handler_config_path': os.path.join(default_conf_dir, 'handlers'),
         'queue_name': 'reactor_queue',
         'queue_wait_time': 20,
         'visibility_timeout': 30,
@@ -30,7 +34,7 @@ DEFAULTS = {
         'interval': 300,
         'backend': 'nymms.scheduler.backends.yaml_backend.YamlBackend',
         'backend_args': {
-            'path': '/etc/nymms/nodes.yaml',
+            'path': os.path.join(default_conf_dir, 'nodes.yaml'),
         }
     },
 }
