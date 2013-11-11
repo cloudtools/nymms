@@ -61,7 +61,7 @@ class Probe(NymmsDaemon):
                 result.state = results.UNKNOWN
                 result.output = ("Command timed out after %d seconds." % 
                                  timeout)
-        except MissingCommandContext as e:
+        except Exception as e:
             result.state = results.UNKNOWN
             result.output = str(e)
         return result
