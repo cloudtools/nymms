@@ -7,9 +7,21 @@ from nymms import results
 from nymms.daemon import NymmsDaemon
 from nymms.resources import Monitor
 from nymms.utils import commands
+from nymms.config.yaml_config import load_config, EmptyConfig
+from nymms.exceptions import MissingCommandContext
 
 
 class Probe(NymmsDaemon):
+    def get_private_context(self, private_context_file):
+        if not private_context_file:
+            return None
+        try:
+            return load_config(private_context_file)[1]
+        except (IOError, EmptyConfig) as e:
+            logger.exception("Unable to open private context file: %s",
+                             private_context_file)
+            return None
+
     # TODO: This calls on _state_backend but setting up of the _state_backend
     #       needs to be handled in the subclass.  Not sure how I should handle
     #       this, but I really like the idea of these being base class
@@ -30,14 +42,15 @@ class Probe(NymmsDaemon):
     def execute_task(self, task, timeout):
         log_prefix = "%s - " % (task.id,)
         monitor = Monitor.registry[task.context['monitor']['name']]
-        command = monitor.format_command(task.context)
+        command = monitor.command.command_string
         current_attempt = int(task.attempt) + 1
         logger.debug(log_prefix + "attempt %d, executing: %s", current_attempt,
                      command)
         result = results.Result(task.id, timestamp=task.created,
                                 task_context=task.context)
         try:
-            output = monitor.execute(task.context, timeout)
+            output = monitor.execute(task.context, timeout,
+                                     self._private_context)
             result.output = output
             result.state = results.OK
         except commands.CommandException as e:
@@ -48,6 +61,9 @@ class Probe(NymmsDaemon):
                 result.state = results.UNKNOWN
                 result.output = ("Command timed out after %d seconds." % 
                                  timeout)
+        except MissingCommandContext as e:
+            result.state = results.UNKNOWN
+            result.output = str(e)
         return result
 
     def handle_task(self, task, **kwargs):
@@ -93,6 +109,8 @@ class Probe(NymmsDaemon):
         get_task() method will introduce a delay if the results queue is
         empty.
         """
+        private_context_file = kwargs.get('private_context_file', None)
+        self._private_context = self.get_private_context(private_context_file)
         while True:
             task = self.get_task(**kwargs)
             if not task:

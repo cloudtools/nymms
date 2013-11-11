@@ -2,6 +2,7 @@ import unittest
 from weakref import WeakValueDictionary
 
 from nymms import resources
+from nymms.exceptions import MissingCommandContext
 
 
 class TestNanoResources(unittest.TestCase):
@@ -38,3 +39,16 @@ class TestNode(unittest.TestCase):
                               monitoring_groups=[mg1, mg2])
         self.assertIn(node, mg1.nodes.values())
         self.assertIn(node, mg2.nodes.values())
+
+
+class TestCommand(unittest.TestCase):
+    def test_format_command(self):
+        command = "/bin/echo {{public}} {{__private.password}}"
+        context = {'public': 'public'}
+        private_context = {'password': 'mypassword'}
+        c = resources.Command('echo', command)
+        with self.assertRaises(MissingCommandContext):
+            c.format_command(context)
+        c_out = c.format_command(context, private_context)
+        self.assertEquals(c_out,
+                          "/bin/echo public mypassword")

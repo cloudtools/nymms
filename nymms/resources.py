@@ -8,8 +8,11 @@ from weakref import WeakValueDictionary
 from nymms import registry
 from nymms.utils import commands
 from nymms.config import yaml_config
+from nymms.exceptions import MissingCommandContext
 
 from jinja2 import Template
+from jinja2.runtime import StrictUndefined
+from jinja2.exceptions import UndefinedError
 
 
 RESERVED_ATTRIBUTES = ['name', 'address', 'node_monitor', 'monitoring_groups',
@@ -191,11 +194,11 @@ class Monitor(NanoResource):
 
         super(Monitor, self).__init__(name, **kwargs)
 
-    def execute(self, context, timeout):
-        return self.command.execute(context, timeout)
+    def execute(self, context, timeout, private_context=None):
+        return self.command.execute(context, timeout, private_context)
 
-    def format_command(self, context):
-        return self.command.format_command(context)
+    def format_command(self, context, private_context=None):
+        return self.command.format_command(context, private_context)
 
 
 class Command(NanoResource):
@@ -206,18 +209,26 @@ class Command(NanoResource):
         self.command_string = command_string
         super(Command, self).__init__(name, **kwargs)
 
-    def format_command(self, context):
+    def format_command(self, context, private_context=None):
         my_context = self._context()
         local_context = copy.deepcopy(context)
         local_context.update(my_context)
+        local_context['__private'] = {}
+        if private_context:
+            local_context['__private'].update(private_context)
         for k, v in my_context.values()[0].iteritems():
             if not k == 'name' and not k in local_context:
                 local_context[k] = v
         t = Template(self.command_string)
+        t.environment.undefined = StrictUndefined
+        try:
+            out = t.render(local_context)
+        except UndefinedError as e:
+            raise MissingCommandContext(e.message)
         return t.render(local_context)
 
-    def execute(self, context, timeout):
-        cmd = self.format_command(context)
+    def execute(self, context, timeout, private_context=None):
+        cmd = self.format_command(context, private_context)
         return commands.execute(cmd, timeout)
 
 
