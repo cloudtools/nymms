@@ -30,6 +30,7 @@ wait_timeout = config.settings['probe']['queue_wait_time']
 monitor_timeout = config.settings['monitor_timeout']
 max_retries = config.settings['probe']['max_retries']
 retry_delay = config.settings['probe']['retry_delay']
+task_expiration = config.settings['probe']['task_expiration']
 private_context_file = config.settings['private_context_file']
 
 daemon = SQSProbe(conn_mgr, tasks_queue, results_topic, state_domain)
@@ -37,4 +38,5 @@ daemon.main(monitor_timeout=monitor_timeout,
            max_retries=max_retries,
            retry_delay=retry_delay,
            queue_wait_time=wait_timeout,
-           private_context_file=private_context_file)
+           private_context_file=private_context_file,
+           task_expiration=task_expiration)

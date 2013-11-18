@@ -1,4 +1,5 @@
 import unittest
+import time
 
 from nymms.probe.Probe import Probe
 from nymms import results
@@ -63,15 +64,15 @@ class DummyProbe(Probe):
     def get_task(self, **kwargs):
         return self.task
 
-    def resubmit_task(self, task, delay):
+    def resubmit_task(self, task, delay, **kwargs):
         self.task.increment_attempt()
 
-    def submit_result(self, result):
+    def submit_result(self, result, **kwargs):
         if result.state_type == results.HARD:
             self.task.attempt = 0
         return result
 
-    def execute_task(self, task, timeout):
+    def execute_task(self, task, timeout, **kwargs):
         result = results.Result(task.id, timestamp=task.created,
                                 task_context=task.context)
         result.state = next(self.results_iter)
@@ -101,3 +102,12 @@ class TestStateChange(unittest.TestCase):
             self.assertEqual(r.state, expected['state'])
             self.assertEqual(r.state_type, expected['state_type'])
             self.probe.submit_result(r)
+
+    def test_expiration(self):
+        expiration = 30
+        now = time.time()
+        t = self.probe.get_task()
+        t.created = now
+        self.assertFalse(self.probe.expire_task(t, expiration))
+        t.created = now - (expiration + 5)
+        self.assertTrue(self.probe.expire_task(t, expiration))

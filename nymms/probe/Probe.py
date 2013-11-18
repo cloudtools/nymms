@@ -1,4 +1,5 @@
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -33,13 +34,13 @@ class Probe(NymmsDaemon):
     def get_task(self, **kwargs):
         raise NotImplementedError
 
-    def resubmit_task(self, task, delay):
+    def resubmit_task(self, task, delay, **kwargs):
         raise NotImplementedError
 
-    def submit_result(self, result):
+    def submit_result(self, result, **kwargs):
         raise NotImplementedError
 
-    def execute_task(self, task, timeout):
+    def execute_task(self, task, timeout, **kwargs):
         log_prefix = "%s - " % (task.id,)
         monitor = Monitor.registry[task.context['monitor']['name']]
         command = monitor.command.command_string
@@ -66,8 +67,22 @@ class Probe(NymmsDaemon):
             result.output = str(e)
         return result
 
+    def expire_task(self, task, task_expiration):
+        if task_expiration:
+            now = time.time()
+            task_lifetime = now - task.created
+            if task_lifetime > task_expiration:
+                logger.debug("Task %s is older than expiration limit %d. "
+                             "Skipping." % (task.id, task_expiration))
+                return True
+            return False
+        return False
+
     def handle_task(self, task, **kwargs):
         log_prefix = "%s - " % (task.id,)
+        task_expiration = kwargs.get('task_expiration', None)
+        if self.expire_task(task, task_expiration):
+            return None
         previous_state = self.get_state(task.id)
         # check if the timeout is defined on the task first, if not then
         # go with what was passed into handle_task via run
@@ -77,7 +92,7 @@ class Probe(NymmsDaemon):
                                        kwargs.get('max_retries'))
         last_attempt = int(task.attempt)
         current_attempt = last_attempt + 1
-        result = self.execute_task(task, timeout)
+        result = self.execute_task(task, timeout, **kwargs)
         result.state_type = results.HARD
         # Trying to emulate this:
         # http://nagios.sourceforge.net/docs/3_0/statetypes.html
@@ -99,7 +114,7 @@ class Probe(NymmsDaemon):
                                              kwargs.get('retry_delay'))
                     delay = max(delay, 0)
                     logger.debug('Resubmitting task with %ds delay.' % delay)
-                    self.resubmit_task(task, delay)
+                    self.resubmit_task(task, delay, **kwargs)
             else:
                 logger.debug("Retry limit hit, not resubmitting.")
         return result
@@ -117,5 +132,6 @@ class Probe(NymmsDaemon):
                 logger.debug("Task queue is empty.")
                 continue
             result = self.handle_task(task, **kwargs)
-            self.submit_result(result)
+            if result:
+                self.submit_result(result, **kwargs)
             task.delete()

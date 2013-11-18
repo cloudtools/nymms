@@ -22,20 +22,26 @@ class SQSProbe(Probe):
         self._state_backend = state_backend(conn_mgr.sdb, state_domain)
         super(SQSProbe, self).__init__()
 
-    def _setup_queue(self):
+    def _setup_queue(self, **kwargs):
         if self._queue:
             return
         logger.debug("setting up queue %s", self._queue_name)
         self._queue = self._conn.sqs.create_queue(self._queue_name)
+        task_expiration = kwargs.get('task_expiration', None)
+        if task_expiration:
+            logger.debug("Setting queue %s message retention to %d.",
+                         self._queue_name, task_expiration)
+            self._queue.set_attribute('MessageRetentionPeriod',
+                                      task_expiration)
 
-    def _setup_topic(self):
+    def _setup_topic(self, **kwargs):
         if self._topic:
             return
         logger.debug("setting up topic %s", self._topic_name)
         self._topic = SNSTopic(self._conn, self._topic_name)
 
     def get_task(self, **kwargs):
-        self._setup_queue()
+        self._setup_queue(**kwargs)
         wait_time = kwargs.get('queue_wait_time')
         timeout = kwargs.get('monitor_timeout') + 3
         logger.debug("Getting task from queue %s.", self._queue_name)
@@ -47,8 +53,8 @@ class SQSProbe(Probe):
                                     origin=task_item)
         return task
 
-    def resubmit_task(self, task, delay):
-        self._setup_queue()
+    def resubmit_task(self, task, delay, **kwargs):
+        self._setup_queue(**kwargs)
         task.increment_attempt()
         logger.debug("Resubmitting task %s with %d second delay.", task.id,
                      delay)
@@ -56,7 +62,7 @@ class SQSProbe(Probe):
         m.set_body(json.dumps(task.serialize()))
         return self._queue.write(m, delay_seconds=delay)
 
-    def submit_result(self, result):
+    def submit_result(self, result, **kwargs):
         self._setup_topic()
         logger.debug("%s - submitting '%s/%s' result", result.id,
                      result.state_name, result.state_type_name)
