@@ -22,8 +22,9 @@ backend_cls = load_object_from_string(settings['scheduler']['backend'])
 backend_args = settings['scheduler']['backend_args']
 backend = backend_cls(**backend_args)
 interval = settings['scheduler']['interval']
+task_expiration = settings['task_expiration']
 
 conn_mgr = aws_helper.ConnectionManager(config.settings['region'])
 
 s = AWSScheduler(backend, conn_mgr, config.settings['tasks_queue'])
-s.main(interval=interval)
+s.main(interval=interval, task_expiration=task_expiration)

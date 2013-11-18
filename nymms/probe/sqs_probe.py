@@ -27,12 +27,6 @@ class SQSProbe(Probe):
             return
         logger.debug("setting up queue %s", self._queue_name)
         self._queue = self._conn.sqs.create_queue(self._queue_name)
-        task_expiration = kwargs.get('task_expiration', None)
-        if task_expiration:
-            logger.debug("Setting queue %s message retention to %d.",
-                         self._queue_name, task_expiration)
-            self._queue.set_attribute('MessageRetentionPeriod',
-                                      task_expiration)
 
     def _setup_topic(self, **kwargs):
         if self._topic:

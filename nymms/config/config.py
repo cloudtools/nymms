@@ -16,12 +16,12 @@ DEFAULTS = {
     'tasks_queue': 'nymms_tasks',
     'results_topic': 'nymms_results',
     'private_context_file': os.path.join(default_conf_dir, 'private.yaml'),
+    'task_expiration': 600,
 
     'probe': {
         'max_retries': 2,
         'queue_wait_time': 20,
         'retry_delay': 30,
-        'task_expiration': 600,
     },
 
     'reactor': {
