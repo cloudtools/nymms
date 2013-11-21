@@ -77,6 +77,15 @@ class NanoResource(object):
         self._context_cache = {context_key: context}
         return self._context_cache
 
+    def _build_context(self, context):
+        context = copy.deepcopy(context)
+        c = self._context()
+        context.update(c)
+        for k, v in c.values()[0].iteritems():
+            if not k == 'name':
+                context[k] = v
+        return context
+
 
 class MonitoringGroup(NanoResource):
     context_attributes = ['name', 'realm']
@@ -146,11 +155,7 @@ class Node(NanoResource):
     def build_context(self, monitoring_group, monitor):
         context = {}
         for obj in (monitoring_group, self, monitor):
-            c = obj._context()
-            context.update(c)
-            for k, v in c.values()[0].iteritems():
-                if not k == 'name':
-                    context[k] = v
+            context = obj._build_context(context)
         return context
 
     @property
