@@ -6,6 +6,7 @@ from nymms.reactor.handlers.Handler import Handler
 from nymms import results
 
 from jinja2 import Template
+from nymms.utils.templates import SimpleUndefined
 
 try:
     import pagerduty
@@ -50,6 +51,7 @@ class PagerDutyHandler(Handler):
         subject_template = self.config.get('subject_template',
            MISSING_SUBJECT % (self.__class__.__name__))
         description = Template(subject_template)
+        description.environment.undefined = SimpleUndefined
         result_data = result.serialize()
         for ep in self._endpoints:
             logger.debug("Submitting to pagerduty service_key %s.",
