@@ -2,7 +2,7 @@ import unittest
 import time
 
 from nymms.probe.Probe import Probe
-from nymms import results
+from nymms import results, resources
 from nymms.tasks import Task
 
 result_codes = [
@@ -17,6 +17,9 @@ result_codes = [
     results.OK,
     results.OK
 ]
+
+command = resources.Command('test_command', '/usr/bin/true')
+monitor = resources.Monitor('test_monitor', command=command)
 
 
 class DummyStateBackend(object):
@@ -58,9 +61,14 @@ class DummyStateBackend(object):
 
 class DummyProbe(Probe):
     def __init__(self):
-        self.task = Task('test:task', context={})
+        self.task = Task('test:task',
+                         context={
+                             'monitor': {
+                                 'name': 'test_monitor'
+                             }
+                         })
         self.results_iter = iter(result_codes)
-        
+
     def get_task(self, **kwargs):
         return self.task
 
@@ -98,7 +106,7 @@ class TestStateChange(unittest.TestCase):
             expected = self.state_backend.states[i + 1]
             print "[%d] Result STATE/TYPE: %s/%s" % (i, r.state, r.state_type)
             print "[%d] Expected STATE/TYPE: %s/%s" % (i, expected['state'],
-                                            expected['state_type'])
+                                                       expected['state_type'])
             self.assertEqual(r.state, expected['state'])
             self.assertEqual(r.state_type, expected['state_type'])
             self.probe.submit_result(r)

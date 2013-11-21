@@ -83,6 +83,10 @@ class Probe(NymmsDaemon):
         task_expiration = kwargs.get('task_expiration', None)
         if self.expire_task(task, task_expiration):
             return None
+        # Used to add the command context to the task
+        monitor = Monitor.registry[task.context['monitor']['name']]
+        command = monitor.command
+        task.context = command._build_context(task.context)
         previous_state = self.get_state(task.id)
         # check if the timeout is defined on the task first, if not then
         # go with what was passed into handle_task via run
