@@ -67,3 +67,18 @@ def unknown_state(result, previous_state):
 
 def not_ok_state(result, previous_state):
     return not(ok_state(result, previous_state))
+
+
+def passive_command(result, previous_state):
+    return result.task_context['command_type'] == 'passive'
+
+
+def active_command(result, previous_state):
+    return not passive_command(result, previous_state)
+
+
+def not_soft_recovery(result, previous_state):
+    if previous_state.state_type == results.SOFT:
+        if result.state_type == results.SOFT and result.state == results.OK:
+            return False
+    return True
