@@ -31,6 +31,7 @@ Currently the main requirements are:
 - PyYAML (used in a few backends, will eventually not be a requirement unless
   you need to use those backends)
 - Jinja2 (needed for templating)
+- Validictory (0.9.1 https://pypi.python.org/pypi/validictory/0.9.1)
 
 Optionally:
 

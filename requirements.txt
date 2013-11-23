@@ -1,3 +1,4 @@
 PyYAML>=3.10
 boto>=2.9.2
 jinja2>=2.6
+validictory>=0.9.1

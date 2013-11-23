@@ -20,3 +20,12 @@ class MissingCommandContext(NymmsException):
 
     def __str__(self):
         return "Invalid command variable: %s" % self.message
+
+
+class InvalidConfig(NymmsException):
+    def __init__(self, path, message):
+        self.path = path
+        self.message = message
+
+    def __str__(self):
+        return "Invalid config file '%s': %s" % (self.path, self.message)
