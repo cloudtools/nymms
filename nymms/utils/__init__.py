@@ -55,3 +55,14 @@ def load_object_from_string(fqcn):
     path_parts = module_parts[:-1]
     module = importlib.import_module('.'.join(path_parts))
     return getattr(module, object_name)
+
+
+def deep_update(orig, upd):
+    """ Does a 'deep' update of dictionary 'orig' with dictionary 'upd'."""
+    for k, v in upd.iteritems():
+        if isinstance(v, collections.Mapping):
+            r = deep_update(orig.get(k, {}), v)
+            orig[k] = r
+        else:
+            orig[k] = upd[k]
+    return orig
