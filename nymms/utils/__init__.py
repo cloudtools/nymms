@@ -2,6 +2,7 @@ import logging
 import time
 import importlib
 import sys
+import collections
 
 logger = logging.getLogger(__name__)
 
