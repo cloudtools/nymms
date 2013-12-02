@@ -4,3 +4,5 @@ base:
   - 3
 !include relative_includes.yaml
 !include included_yaml/*.yaml
+included:
+    !include indent_include.yaml
