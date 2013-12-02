@@ -2,12 +2,15 @@ import glob
 import os
 import logging
 import hashlib
+import re
 
 logger = logging.getLogger(__name__)
 
 import yaml
 
 from nymms import exceptions
+
+include_regex = re.compile(r'^(?P<indent>\s*)\!include (?P<path>[^\s]+)$')
 
 
 class EmptyConfig(exceptions.NymmsException):
@@ -37,7 +40,7 @@ def load_config(config_file):
     stack = []
     root = os.path.split(os.path.abspath(os.path.expanduser(config_file)))[0]
 
-    def recursive_preprocess(filename):
+    def recursive_preprocess(filename, indent=''):
         filename = os.path.expanduser(filename)
         stack.append(os.path.abspath(filename))
         c = []
@@ -45,8 +48,10 @@ def load_config(config_file):
         with open_config_file(filename) as fd:
             for lineno, line in enumerate(fd):
                 line = line.rstrip()
-                if line.startswith('!include '):
-                    path = line.split(None, 1)[1]
+                match = include_regex.match(line)
+                if match:
+                    path = match.group('path')
+                    indent = indent + match.group('indent')
                     # if the include doesn't have a fully qualified path then
                     # assume the relative path is based off the directory of
                     # the initial config file
@@ -68,13 +73,13 @@ def load_config(config_file):
                         if os.path.isfile(f):
                             logger.debug("Parsing include (%s:%d): %s",
                                          filename, lineno, f)
-                            c.extend(recursive_preprocess(f))
+                            c.extend(recursive_preprocess(f, indent))
                         else:
                             logger.warning("%s is not a regular file, "
                                            "skipping (%s:%d).", f, filename,
                                            lineno)
                     continue
-                c.append(line)
+                c.append(indent + line)
         return c
     logger.debug("Loading config file: %s", config_file)
     config = recursive_preprocess(config_file)
