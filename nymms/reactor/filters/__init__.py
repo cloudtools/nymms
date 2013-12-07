@@ -82,3 +82,13 @@ def not_soft_recovery(result, previous_state):
         if result.state_type == results.SOFT and result.state == results.OK:
             return False
     return True
+
+
+def no_previous(result, previous_state):
+    return not previous_state
+
+
+def not_first_ok(result, previous_state):
+    if no_previous(result, previous_state) and result.state == results.OK:
+        return False
+    return True
