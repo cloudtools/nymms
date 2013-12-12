@@ -38,7 +38,7 @@ def open_config_file(config_file):
 
 def load_config(config_file):
     stack = []
-    root = os.path.split(os.path.abspath(os.path.expanduser(config_file)))[0]
+    root = os.path.dirname(os.path.abspath(os.path.expanduser(config_file)))
 
     def recursive_preprocess(filename, indent=''):
         filename = os.path.expanduser(filename)

@@ -6,7 +6,7 @@ from nymms.config import yaml_config
 
 class TestIncludeLoader(unittest.TestCase):
     def setUp(self):
-        self.root = os.path.split(__file__)[0]
+        self.root = os.path.dirname(__file__)
 
     def test_relative_include(self):
         full_path = os.path.join(self.root, 'config.yaml')

@@ -22,7 +22,7 @@ class Reactor(NymmsDaemon):
         conf_files = glob.glob(os.path.join(base_path, '*.conf'))
         logger.debug("Loading handlers from %s", handler_config_path)
         for f in conf_files:
-            handler_name = os.path.split(f)[1][:-5]
+            handler_name = os.path.basename(f)[:-5]
             # We could eventually have the handlers get loaded everytime and
             # update them if their config has changed (via config_version
             # below).  For now lets not get that tricky.
