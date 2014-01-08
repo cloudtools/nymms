@@ -6,8 +6,8 @@ from weakref import WeakValueDictionary
 
 
 class TestRegistry(unittest.TestCase):
-    def tearDown(self):
-        # Ensure we have a fresh registry after every test
+    def setUp(self):
+        # Ensure we have a fresh registry before every test
         Command.registry.clear()
 
     def test_empty_registry(self):
@@ -25,6 +25,7 @@ class TestRegistry(unittest.TestCase):
 
     def test_duplicate_register(self):
         # add a command
+        print Command.registry
         Command('test_command', '/bin/true')
         with self.assertRaises(registry.DuplicateEntryError):
             Command('test_command', '/bin/true')
