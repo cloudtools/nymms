@@ -1,4 +1,5 @@
 import logging
+import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -60,8 +61,12 @@ class SDBStateBackend(object):
         state_item = self._domain.get_item(task_id, consistent_read=True)
         state = None
         if state_item:
-            state = results.StateRecord.deserialize(state_item)
-            state.validate()
+            try:
+                state = results.StateRecord.deserialize(state_item)
+                state.validate()
+            except:
+                logger.exception("Problem deserializing state:")
+                logger.error("State data: %s", str(state_item))
         else:
             logger.debug("%s - no state found", task_id)
         return state
