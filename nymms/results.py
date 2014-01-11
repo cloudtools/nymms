@@ -84,7 +84,7 @@ class Result(NymmsDataType, StateMixin):
     required_fields = ['state', 'state_type']
 
     def __init__(self, object_id, state=None, state_type=None, timestamp=None,
-                 output=None, task_context=None, origin=None):
+                 output=None, task_context=None, origin=None, *args, **kwargs):
         super(Result, self).__init__(object_id=object_id, origin=origin)
         self.state = state
         self.state_type = state_type
@@ -112,7 +112,7 @@ class StateRecord(NymmsDataType, StateMixin):
     required_fields = ['state', 'state_type']
 
     def __init__(self, object_id, last_update=None, last_state_change=None,
-                 state=None, state_type=None, origin=None):
+                 state=None, state_type=None, origin=None, *args, **kwargs):
         super(StateRecord, self).__init__(object_id=object_id, origin=origin)
         self.last_update = last_update
         self.last_state_change = last_state_change

@@ -8,7 +8,7 @@ from nymms.data_types import NymmsDataType
 
 class Task(NymmsDataType):
     def __init__(self, object_id, created=None, attempt=0, context=None,
-                 origin=None):
+                 origin=None, *args, **kwargs):
         super(Task, self).__init__(object_id=object_id, origin=origin)
         self.attempt = attempt or 0
         self.created = created or time.time()
