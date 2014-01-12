@@ -33,16 +33,20 @@ class Handler(object):
             self._load_filters()
         # Assume that no filters means just that - that the result is
         # not to be filtered for the handler.
-        results = [True]
+        if not self._filters:
+            return True
+        results = {}
         for f in self._filters:
             try:
-                results.append(f(result, previous_state))
+                results[f.__name__] = f(result, previous_state)
             except Exception as e:
                 logger.exception("Filter %s on Handler %s had an unhandled "
                                  "exception. Ignoring:",
                                  f.__name__, self.__class__.__name__)
                 continue
-        return all(results)
+        logger.debug("Handler %s filter results: %s", self.__class__.__name__,
+                     results)
+        return all(results.values())
 
     def _process(self, result, previous_state):
         if self._filter(result, previous_state):
