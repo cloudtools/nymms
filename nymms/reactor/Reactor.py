@@ -17,12 +17,34 @@ class Reactor(NymmsDaemon):
         self._handlers = {}
         super(Reactor, self).__init__()
 
+    def _list_handler_configs(self, path):
+        path = os.path.expanduser(path)
+        return glob.glob(os.path.join(path, '*.conf'))
+
+    def _get_handler_name(self, filename):
+        return os.path.basename(filename)[:-5]
+
+    def _load_handler(self, handler_name, config, **kwargs):
+        enabled = config.pop('enabled', False)
+        if not enabled:
+            logger.debug("Handler %s 'enabled' is not set to true. "
+                         "Skipping.", handler_name)
+            return None
+        cls_string = config.pop('handler_class')
+        logger.debug('Initializing handler %s.', handler_name)
+        try:
+            handler_cls = load_object_from_string(cls_string)
+            return handler_cls(config)
+        except Exception as e:
+            logutil.log_exception("Skipping handler %s due to "
+                "unhandled exception:" % (handler_name), logger)
+            return None
+
     def _load_handlers(self, handler_config_path, **kwargs):
-        base_path = os.path.expanduser(handler_config_path)
-        conf_files = glob.glob(os.path.join(base_path, '*.conf'))
+        conf_files = self._list_handler_configs(handler_config_path)
         logger.debug("Loading handlers from %s", handler_config_path)
         for f in conf_files:
-            handler_name = os.path.basename(f)[:-5]
+            handler_name = self._get_handler_name(f)
             # We could eventually have the handlers get loaded everytime and
             # update them if their config has changed (via config_version
             # below).  For now lets not get that tricky.
@@ -31,21 +53,10 @@ class Reactor(NymmsDaemon):
                     logger.debug("Handler %s already loaded, skipping.",
                                  handler_name)
                     continue
-            conf_version, conf = yaml_config.load_config(f)
-            enabled = conf.pop('enabled', False)
-            if not enabled:
-                logger.debug("Handler %s 'enabled' is not set to true. "
-                             "Skipping.", handler_name)
-                continue
-            cls_string = conf.pop('handler_class')
-            logger.debug('Initializing handler %s.', handler_name)
-            try:
-                handler_cls = load_object_from_string(cls_string)
-                self._handlers[handler_name] = handler_cls(conf)
-            except Exception as e:
-                logutil.log_exception("Skipping handler %s due to "
-                    "unhandled exception:" % (handler_name), logger)
-                continue
+            conf_version, config = yaml_config.load_config(f)
+            handler = self._load_handler(handler_name, config, **kwargs)
+            if handler:
+                self._handlers[handler_name] = handler
 
         if not self._handlers:
             logger.error("No handlers loaded.  Exiting.")
