@@ -22,3 +22,9 @@ class TestIncludeLoader(unittest.TestCase):
         full_path = os.path.join(self.root, 'config.yaml')
         version, relative_config = yaml_config.load_config(full_path)
         self.assertEqual(relative_config['included']['a'], 1)
+
+    def test_empty_config(self):
+        full_path = os.path.join(self.root, 'empty.yaml')
+        with self.assertRaises(yaml_config.EmptyConfig) as ee:
+            yaml_config.load_config(full_path)
+        self.assertEqual(ee.exception.filename, full_path)

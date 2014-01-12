@@ -1,7 +1,11 @@
 import unittest
 import time
+import os
 
-from nymms.probe.Probe import Probe
+os.environ['PATH'] += ":/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin"
+os.environ['PATH'] += ":/usr/local/sbin"
+
+from nymms.probe.Probe import Probe, TIMEOUT_OUTPUT
 from nymms import results, resources
 from nymms.tasks import Task
 
@@ -18,8 +22,14 @@ result_codes = [
     results.OK
 ]
 
-command = resources.Command('test_command', '/usr/bin/true')
-monitor = resources.Monitor('test_monitor', command=command)
+true_output = "Good output"
+true_command = resources.Command('true_command', 'echo ' + true_output)
+fail_command = resources.Command('fail_command', 'false')
+sleep_command = resources.Command('sleep_command', 'sleep {{sleep_time}}')
+
+true_monitor = resources.Monitor('true_monitor', command=true_command)
+fail_monitor = resources.Monitor('fail_monitor', command=fail_command)
+sleep_monitor = resources.Monitor('sleep_monitor', command=sleep_command)
 
 
 class DummyStateBackend(object):
@@ -64,7 +74,7 @@ class DummyProbe(Probe):
         self.task = Task('test:task',
                          context={
                              'monitor': {
-                                 'name': 'test_monitor'
+                                 'name': 'true_monitor'
                              }
                          })
         self.results_iter = iter(result_codes)
@@ -119,3 +129,46 @@ class TestStateChange(unittest.TestCase):
         self.assertFalse(self.probe.expire_task(t, expiration))
         t.created = now - (expiration + 5)
         self.assertTrue(self.probe.expire_task(t, expiration))
+
+
+class TestExecuteTask(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.probe = Probe()
+        cls.true_task = Task('test:true_monitor',
+                             context={
+                                 'monitor': {
+                                     'name': 'true_monitor',
+                                 }
+                             })
+        cls.fail_task = Task('test:fail_monitor',
+                             context={
+                                 'monitor': {
+                                     'name': 'fail_monitor',
+                                 }
+                             })
+        cls.timeout_task = Task('test:timeout_monitor',
+                             context={
+                                 'monitor': {
+                                     'name': 'sleep_monitor',
+                                 },
+                                 'sleep_time': 2,
+                             })
+        cls.probe._private_context = {}
+
+    def test_successful_execute_task(self):
+        result = self.probe.execute_task(self.true_task, 30)
+        print result.output
+        self.assertEqual(result.state, results.OK)
+        self.assertEqual(result.output.strip(), true_output)
+
+    def test_failed_execute_task(self):
+        result = self.probe.execute_task(self.fail_task, 30)
+        self.assertEqual(result.state, results.WARNING)
+        self.assertEqual(result.output.strip(), '')
+
+    def test_timeout_execute_task(self):
+        timeout = 1
+        result = self.probe.execute_task(self.timeout_task, timeout)
+        self.assertEqual(result.state, results.UNKNOWN)
+        self.assertEqual(result.output.strip(), TIMEOUT_OUTPUT % timeout)
