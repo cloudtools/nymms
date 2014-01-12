@@ -12,6 +12,9 @@ from nymms.config.yaml_config import load_config, EmptyConfig
 from nymms.exceptions import MissingCommandContext
 
 
+TIMEOUT_OUTPUT = "Command timed out after %d seconds."
+
+
 class Probe(NymmsDaemon):
     def get_private_context(self, private_context_file):
         if not private_context_file:
@@ -60,8 +63,7 @@ class Probe(NymmsDaemon):
                 result.output = e.output
             if isinstance(e, commands.CommandTimeout):
                 result.state = results.UNKNOWN
-                result.output = ("Command timed out after %d seconds." % 
-                                 timeout)
+                result.output = (TIMEOUT_OUTPUT % timeout)
         except Exception as e:
             result.state = results.UNKNOWN
             result.output = str(e)
