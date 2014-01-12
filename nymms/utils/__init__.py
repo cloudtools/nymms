@@ -49,13 +49,14 @@ def load_object_from_string(fqcn):
 
     load_object_from_string('os.path.basename')
     load_object_from_string('logging.Logger')
-    etc
+    load_object_from_string('LocalClassName')
     """
-    module_parts = fqcn.split('.')
-    object_name = module_parts[-1]
-    path_parts = module_parts[:-1]
-    module = importlib.import_module('.'.join(path_parts))
-    return getattr(module, object_name)
+    module_path = '__main__'
+    object_name = fqcn
+    if '.' in fqcn:
+        module_path, object_name = fqcn.rsplit('.', 1)
+        module = importlib.import_module(module_path)
+    return getattr(sys.modules[module_path], object_name)
 
 
 def deep_update(orig, upd):
