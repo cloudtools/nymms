@@ -78,7 +78,7 @@ def active_command(result, previous_state):
 
 
 def not_soft_recovery(result, previous_state):
-    if previous_state.state_type == results.SOFT and \
+    if previous_state and previous_state.state_type == results.SOFT and \
             result.state == results.OK:
         return False
     return True
