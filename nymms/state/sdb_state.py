@@ -3,6 +3,8 @@ import traceback
 
 logger = logging.getLogger(__name__)
 
+from boto.exception import SDBResponseError
+
 from nymms import results
 from nymms.exceptions import OutOfDateState
 
@@ -51,9 +53,16 @@ class SDBStateBackend(object):
                                new_state.serialize())
                 raise OutOfDateState(new_state, previous)
         logger.debug(task_id + " - saving state: %s", new_state.serialize())
-        self._domain.put_attributes(task_id, new_state.serialize(),
-                                    replace=True,
-                                    expected_value=expected_value)
+        try:
+            self._domain.put_attributes(task_id, new_state.serialize(),
+                                        replace=True,
+                                        expected_value=expected_value)
+        except SDBResponseError as e:
+            if e.error_code == 'ConditionalCheckFailed':
+                logger.warning('last_update for %s was updated, skipping',
+                               task_id)
+                return
+            raise
 
     def get_state(self, task_id):
         self._setup_domain()
