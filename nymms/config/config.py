@@ -47,6 +47,17 @@ SCHEMA = {
         'task_expiration': {
             'type': 'integer', 'minimum': 0,
         },
+        'filter': {
+            'type': 'object',
+            'properties': {
+                'domain': {
+                    'type': 'string',
+                },
+                'cache_timeout': {
+                    'type': 'string',
+                },
+            }
+        },
         'probe': {
             'type': 'object',
             'properties': {
