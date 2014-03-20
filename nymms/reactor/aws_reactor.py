@@ -1,10 +1,12 @@
 import logging
 import json
+import time
 
 logger = logging.getLogger(__name__)
 
 from nymms import results
 from nymms.reactor.Reactor import Reactor
+from nymms.reactor.suppress import (ReactorSuppress, ReactorFilter)
 from nymms.utils.aws_helper import SNSTopic
 from nymms.state.sdb_state import SDBStateBackend
 
@@ -13,13 +15,17 @@ from boto.sqs.message import RawMessage
 
 class AWSReactor(Reactor):
     def __init__(self, conn_mgr, topic_name, state_domain_name, queue_name,
-                 state_backend=SDBStateBackend):
+                 state_backend=SDBStateBackend, filter_cache_timeout=60):
         self._conn = conn_mgr
         self._topic_name = topic_name
         self._queue_name = queue_name
         self._topic = None
         self._queue = None
         self._state_backend = state_backend(conn_mgr.sdb, state_domain_name)
+        self._filter_cache_timeout = filter_cache_timeout
+        self._filter_cache_time = None
+        self._cached_filters = []
+        self._suppress = ReactorSuppress(self._conn.sdb)
         super(AWSReactor, self).__init__()
 
     def _setup_queue(self):
@@ -54,3 +60,17 @@ class AWSReactor(Reactor):
                                                     origin=result)
             result_obj.validate()
         return result_obj
+
+    def get_filters(self):
+        """Returns a list of currently active suppression filters"""
+        now = int(time.time())
+        if not self._filter_cache_time:
+            self._filter_cache_time = now
+        if not self._cached_filters or \
+                (self._filter_cache_time + self._filter_cache_timeout) < now:
+            self._filter_cache_time = now
+            self._cached_filters = []
+            for item in self._suppress.get_active_filters():
+                self._cached_filters.append(item)
+
+        return self._cached_filters

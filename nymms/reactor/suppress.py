@@ -8,18 +8,21 @@ logger = logging.getLogger(__name__)
 class ReactorFilter(object):
     def __init__(self, item):
         self.regex = str(item['regex'])
+        self.created_at = int(str(item['created_at']))
         self.expires = int(str(item['expires']))
         self.userid = str(item['userid'])
         self.ipaddr = str(item['ipaddr'])
         self.comment = str(item['comment'])
-        self.uuid = str(item['key'])
+        self.rowkey = str(item['rowkey'])
 
     def to_dict(self):
         return {'regex': self.regex,
+                'created_at': str(self.created_at),
                 'expires': str(self.expires),
                 'userid': self.userid,
                 'ipaddr': self.ipaddr,
-                'comment': self.comment
+                'comment': self.comment,
+                'rowkey': self.rowkey
                 }
 
 class ReactorSuppress(object):
@@ -48,11 +51,15 @@ class ReactorSuppress(object):
         """
         self._setup_domain()
         rowkey = uuid.uuid4()
-        if self.domain.put_attributes(rowkey, {'regex': regex,
+        if self.domain.put_attributes(rowkey, {
+            'regex': regex,
+            'created_at': int(time.time()),
             'expires': expires,
             'comment': comment,
             'userid': userid,
-            'ipaddr': ipaddr}):
+            'ipaddr': ipaddr,
+            'rowkey': rowkey
+            }):
             return rowkey
         else:
             return False
@@ -62,14 +69,28 @@ class ReactorSuppress(object):
         now = int(time.time())
         return self.get_filters(now, 0)
 
-    def get_filters(self, start, end):
-        """Returns a list of filters which were active between start
-        and end epoch"""
+    def get_filters(self, start=None, end=None):
+        """Returns a list of filters which were active between start and end
+        start / end = epoch time
+        pass in 'None' and we'll return *all* filters
+        """
         self._setup_domain()
-        query = "select * from `%s` where `expire` >= '%s' and `expire` <= '%s'" % (
-                self._domain_name, start, end)
+        if start and end:
+            query = "select * from `%s` where `expires` >= '%s' and `expires` <= '%s'" % (
+                    self._domain_name, start, end)
+        else:
+            query = "select * from `%s`" % (self._domain_name,)
+        query += " order by expires"
         filters = []
         for item in self.domain.select(query):
             filters.append(ReactorFilter(item))
 
         return filters
+
+    def delete_all_filters(self):
+        self._setup_domain()
+        self._conn.delete_domain(self._domain_name)
+
+    def delete_filter(self, rowkey):
+        self._setup_domain()
+        self.domain.delete_itme(rowkey)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__doc__ = """CLI tool to create new reactor suppresssion filters"""
+__doc__ = """CLI tool to create new reactor suppression filters"""
 
 import boto.sdb
 from nymms.reactor.suppress import (ReactorSuppress, ReactorFilter)
