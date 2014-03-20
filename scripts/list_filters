@@ -1,0 +1,62 @@
+#!/usr/bin/env python
+
+__doc__ = """CLI tool to report on reactor suppression filters."""
+
+import boto.sdb 
+from nymms.reactor.suppress import ReactorSuppress
+import argparse
+import time
+import logging
+
+
+def time_to_epoch(name, usertime):
+    """Convert YYYYMMDDHHMMSS or +/-XXXX[smhd] to Unix epoch time"""
+    now = int(time.time())
+    epoch = 0
+    print "processing %s @ %s" % (name, usertime)
+    if usertime[0] == '+' or usertime[0] == '-': 
+        last_char = usertime[len(usertime) - 1]
+        user_value = usertime[0:(len(usertime) - 1)]
+        if last_char == 's':
+            epoch = now + int(user_value)
+        elif last_char == 'm':
+            epoch = now + (int(user_value) * 60)
+        elif last_char == 'h':
+            epoch = now + (int(user_value) * 60 * 60)
+        elif last_char == 'd':
+            epoch = now + (int(user_value) * 60 * 60 * 24)
+        else:
+            logger.error("Invalid %s time: %s.  Missing s/m/h/d qualifier\n",
+                name, usertime)
+            exit(-1)
+    else:
+        epoch = time.strftime("%Y%m%d%H%M%S", usertime)
+    return epoch
+
+if __name__ == '__main__':
+    logger = logging.getLogger(__name__)
+    parser = argparse.ArgumentParser(__doc__)
+    parser.add_argument('-r', '--region', dest='region',
+            help='AWS region to connect to')
+    parser.add_argument('-s', '--start', dest='start',
+            help='YYYMMDDHHMMSS or -XXX[smhd] start time', default='-1h')
+    parser.add_argument('-e', '--end', dest='end',
+            help='YYYMMDDHHMMSS or -XXX[smhd] end time', default='+0s')
+
+    values = parser.parse_args()
+    start = time_to_epoch('start', values.start)
+    end = time_to_epoch('end', values.end)
+    start_time = time.gmtime(start)
+    end_time = time.gmtime(end)
+    logger.debug("Searching for filters between % and %s\n",
+            time.strftime("%Y-%m-%d %H:%M:%S", start_time),
+            time.strftime("%Y-%m-%d %H:%M:%S", end_time))
+
+    conn = boto.sdb.connect_to_region(values.region)
+
+    suppress = ReactorSuppress(conn)
+    filters = suppress.get_filters(start, end)
+    for item in filters:
+        expires = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(item.expires))
+        print "regex: %s\texpire: %s\tuserid: %s\tipaddr: %s\n\tcomment: %s\n" % (
+                item.regex, expires, item.userid, item.ipaddr, item.comment)
