@@ -2,7 +2,7 @@ import logging
 import traceback
 import time
 import uuid
-from nymms.filter.filter import (SuppressFilterBackend, ReactorFilter)
+from nymms.suppress.suppress import (SuppressFilterBackend, ReactorFilter)
 
 logger = logging.getLogger(__name__)
 
@@ -46,15 +46,15 @@ class SDBSuppressFilterBackend(SuppressFilterBackend):
         else:
             return False
 
-    def get_filters(self, start=None, end=None, active=True):
+    def get_filters(self, expire, active=True):
         """Returns a list of filters which were active between start and end
-        start / end = epoch time
-        pass in 'None' and we'll return *all* filters
+        expire = expoch time
+        active = True/False to limit to only filters flagged 'active' = 'True'
         """
         self._setup_domain()
         if start and end:
-            query = "select * from `%s` where `expires` >= '%s' and `expires` <= '%s'" % (
-                    self._domain_name, start, end)
+            query = "select * from `%s` where `expires` >= '%s'" % (
+                    self._domain_name, expire)
         else:
             query = "select * from `%s` where `expires` > '0'" % (self._domain_name,)
 

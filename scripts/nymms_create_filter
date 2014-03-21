@@ -2,6 +2,7 @@
 
 __doc__ = """CLI tool to create new reactor suppression filters"""
 
+from nymms.config import config
 import boto.sdb
 from nymms.filter.sdb_filter import SDBSuppressFilterBackend
 import argparse
@@ -10,6 +11,7 @@ import os
 import logging
 import socket
 import sys
+import re
 
 
 def get_ipaddr():
@@ -27,8 +29,12 @@ if __name__ == '__main__':
 
     logger = logging.getLogger(__name__)
     parser = argparse.ArgumentParser(__doc__)
-    parser.add_argument('-r', '--region', dest='region', required=True,
-            help='AWS region to connect to')
+    parser.add_argument('-c', '--config', dest='config', default='/etc/nymms/config.yaml',
+            help='NYMMS config file')
+    parser.add_argument('-r', '--region', dest='region',
+            help='Override config AWS region to connect to')
+    parser.add_argument('-d', '--domain', dest='domain', default='reactor_suppress',
+            help='Override config AWS SDB Domain to use')
     parser.add_argument('-e', '--expires', dest='expires', default='+1h',
             help='YYYYMMDDHHMMSS or +XXX[smhd] to expire in. default: +1h')
     parser.add_argument('-f', '--filter', dest='filter', required=True,
@@ -40,6 +46,20 @@ if __name__ == '__main__':
     parser.add_argument('-u', '--userid', dest='userid', default=userid,
             help='Override userid to record: %s' % (userid,))
     values = parser.parse_args()
+
+    try:
+        config.load_config(values.config)
+        region = config.settings['region']
+        domain = config.settings['suppress']['domain']
+    except:
+        # there may not be a config file or it might be old
+        pass
+
+    if values.region:
+        region = values.region
+    if values.domain:
+        domain = values.domain
+ 
 
     now = int(time.time())
     if values.expires[0] == '+':
@@ -58,7 +78,10 @@ if __name__ == '__main__':
                 values.expires)
             exit(-1)
     else:
-        expires = time.strftime("%Y%m%d%H%M%S", values.expires)
+        regex = re.compile('(\d{4})(\d{2}){5}')
+        match = regex.match(value.expires)
+        expires = int(time.strftime("%Y%m%d%H%M%S", (match[0], match[1], match[2],
+            match[3], match[4], match[5])))
 
     if expires < now:
         logger.error("Expires must be in the future")
@@ -70,8 +93,8 @@ if __name__ == '__main__':
             time.strftime("%Y-%m-%d %H:%M:%S", now_time),
             time.strftime("%Y-%m-%d %H:%M:%S", expires_time))
 
-    conn = boto.sdb.connect_to_region(values.region)
+    conn = boto.sdb.connect_to_region(region)
 
-    suppress = SDBSuppressFilterBackend(conn)
+    suppress = SDBSuppressFilterBackend(conn, domain)
     suppress.add_filter(values.filter,
             expires, values.comment, values.userid, values.ipaddr)

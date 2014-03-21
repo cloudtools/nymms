@@ -31,7 +31,7 @@ class SuppressFilterBackend(object):
     
     You need to define:
     add_filter(self, regex, expires, comment, userid, ipaddr)
-    get_filters(self, start, end, active)
+    get_filters(self, expire, active)
     delete_all_filters(self)
     delete_filter(self, rowkey)
     """
@@ -43,18 +43,19 @@ class SuppressFilterBackend(object):
     def get_active_filters(self):
         """Returns a list of filters which are currently active in SDB"""
         now = int(time.time())
-        return self.get_filters(now, 0, True)
+        return self.get_filters(now, True)
 
     def get_cached_current_filters(self):
         """Returns a list of currently active suppression filters"""
         now = int(time.time())
         if not self._filter_cache_time:
-            self._filter_cache_time = now
-        if not self._cached_filters or \
-                (self._filter_cache_time + self._filter_cache_timeout) < now:
+            self._filter_cache_time = now - self._filter_cache_timeout
+
+        if (self._filter_cache_time + self._filter_cache_timeout) <= now:
             self._filter_cache_time = now
             self._cached_filters = []
-            for item in self._suppress.get_active_filters():
+            filters = self._suppress.get_active_filters()
+            for item in filters:
                 self._cached_filters.append(item)
 
         return self._cached_filters
