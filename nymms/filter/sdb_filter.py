@@ -39,13 +39,14 @@ class SDBSuppressFilterBackend(SuppressFilterBackend):
             'comment': comment,
             'userid': userid,
             'ipaddr': ipaddr,
-            'rowkey': rowkey
+            'rowkey': rowkey,
+            'active': 'True'
             }):
             return rowkey
         else:
             return False
 
-    def get_filters(self, start=None, end=None):
+    def get_filters(self, start=None, end=None, active=True):
         """Returns a list of filters which were active between start and end
         start / end = epoch time
         pass in 'None' and we'll return *all* filters
@@ -56,7 +57,12 @@ class SDBSuppressFilterBackend(SuppressFilterBackend):
                     self._domain_name, start, end)
         else:
             query = "select * from `%s` where `expires` > '0'" % (self._domain_name,)
-        query += " order by expires"
+
+        if active:
+            query += " and `active` = 'True' order by expires"
+        else:
+            query += " order by expires"
+
         filters = []
         for item in self.domain.select(query):
             filters.append(ReactorFilter(item))
@@ -68,7 +74,13 @@ class SDBSuppressFilterBackend(SuppressFilterBackend):
         self._setup_domain()
         self._conn.delete_domain(self._domain_name)
 
-    def delete_filter(self, rowkey):
-        """Deletes a single filter"""
+    def deactivate_filter(self, rowkey):
+        """Deactivates a single filter"""
         self._setup_domain()
-        self.domain.delete_item(rowkey)
+        query = "select * from `%s` where `rowkey` = '%s'" % \
+                (self._domain_name, rowkey)
+        for item in self.domain.select(query):
+            self._conn.put_attributes(self._domain_name,
+                    rowkey, 
+                    { 'active': int(time.time()) })
+                    

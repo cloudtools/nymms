@@ -11,6 +11,7 @@ class ReactorFilter(object):
         self.ipaddr = str(item['ipaddr'])
         self.comment = str(item['comment'])
         self.rowkey = str(item['rowkey'])
+        self.active = str(item['active'])
         self.re = re.compile(self.regex)
 
     def to_dict(self):
@@ -20,7 +21,8 @@ class ReactorFilter(object):
                 'userid': self.userid,
                 'ipaddr': self.ipaddr,
                 'comment': self.comment,
-                'rowkey': self.rowkey
+                'rowkey': self.rowkey,
+                'active': self.active
                 }
 
 
@@ -29,7 +31,7 @@ class SuppressFilterBackend(object):
     
     You need to define:
     add_filter(self, regex, expires, comment, userid, ipaddr)
-    get_filters(self, start, end)
+    get_filters(self, start, end, active)
     delete_all_filters(self)
     delete_filter(self, rowkey)
     """
@@ -41,7 +43,7 @@ class SuppressFilterBackend(object):
     def get_active_filters(self):
         """Returns a list of filters which are currently active in SDB"""
         now = int(time.time())
-        return self.get_filters(now, 0)
+        return self.get_filters(now, 0, True)
 
     def get_cached_current_filters(self):
         """Returns a list of currently active suppression filters"""
@@ -71,7 +73,7 @@ class SuppressFilterBackend(object):
     def get_filters(self, **kwargs):
         raise NotImplementedError
 
-    def delete_filter(self, **kwargs):
+    def deactivate_filter(self, **kwargs):
         raise NotImplementedError
 
     def delete_all_filters(self):
