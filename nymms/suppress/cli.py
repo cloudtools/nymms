@@ -1,32 +1,31 @@
 import time
-from nymms.config import config
+from nymms.utils.cli import NymmsDaemonCommand
 import sys
 import re
+import argparse
 
 DEFAULT_REGION = 'us-east-1'
 DEFAULT_DOMAIN = 'reactor_suppress'
 
 
-class SuppressCLI(object):
-    def __init__(self, parser):
-        self.parser = parser
-        self.parser.add_argument('-C', '--config', dest='config',
-                default='/etc/nymms/config.yaml',
-                help='NYMMS config file')
-        self.parser.add_argument('-r', '--region', dest='region',
+class SuppressCLI(NymmsDaemonCommand):
+    def __init__(self, *args, **kwargs):
+        super(SuppressCLI, self).__init__(*args, **kwargs)
+        self.add_argument('-r', '--region', dest='region',
                 help='Override config AWS region to connect to')
-        self.parser.add_argument('-d', '--domain', dest='domain',
+        self.add_argument('-d', '--domain', dest='domain',
                 help='Override config AWS SDB Domain to use')
         self.region = None
         self.domain = None
         self._now = None
+        self.values = None
 
-    def add_argument(self, *args, **kwargs):
-        self.parser.add_argument(*args, **kwargs)
+    def parse_args(self):
+        self.values = super(SuppressCLI, self).parse_args()
+        return self.values
 
-    def values(self):
-        self.values = self.parser.parse_args()
-
+    def load_config(self):
+        from nymms.config import config
         # default is config file
         try:
             config.load_config(self.values.config)

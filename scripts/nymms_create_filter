@@ -3,8 +3,8 @@
 __doc__ = """CLI tool to create new reactor suppression filters"""
 
 import boto.sdb
-from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
 from nymms.suppress.cli import SuppressCLI
+from nymms.utils import cli
 import argparse
 import time
 import os
@@ -25,20 +25,23 @@ def get_ipaddr():
 ipaddr = get_ipaddr()
 userid = os.getlogin()
 
-logger = logging.getLogger(__name__)
-parser = argparse.ArgumentParser(__doc__)
-cli = SuppressCLI(parser)
-cli.add_argument('-e', '--expires', dest='expires', default='+1h',
+args = SuppressCLI()
+args.add_argument('-e', '--expires', dest='expires', default='+1h',
         help='YYYYMMDDHHMMSS or +XXX[smhd] to expire in. default: +1h')
-cli.add_argument('-f', '--filter', dest='filter', required=True,
+args.add_argument('-f', '--filter', dest='filter', required=True,
         help='Regex to filter events with')
-cli.add_argument('-c', '--comment', dest='comment', required=True,
+args.add_argument('-C', '--comment', dest='comment', required=True,
         help='Comment to record with filter')
-cli.add_argument('-i', '--ipaddr', dest='ipaddr', default=ipaddr,
+args.add_argument('-i', '--ipaddr', dest='ipaddr', default=ipaddr,
         help='Override IP address to record: %s' % (ipaddr,))
-cli.add_argument('-u', '--userid', dest='userid', default=userid,
+args.add_argument('-u', '--userid', dest='userid', default=userid,
         help='Override userid to record: %s' % (userid,))
-values = cli.values()
+
+values = args.parse_args()
+logger = cli.setup_logging(values.verbose)
+
+from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
+args.load_config()
 
 expires = cli.parse_time(values.expires)
 

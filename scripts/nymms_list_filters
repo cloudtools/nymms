@@ -3,32 +3,33 @@
 __doc__ = """CLI tool to report on reactor suppression filters."""
 
 import boto.sdb
-from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
 from nymms.suppress.cli import SuppressCLI
-import argparse
 import time
-import logging
+from nymms.utils import cli
 
 
-logger = logging.getLogger(__name__)
-parser = argparse.ArgumentParser(__doc__)
-cli = SuppressCLI(parser)
-parser.add_argument('-t', '--time', dest='time',
+args = SuppressCLI()
+args.add_argument('-t', '--time', dest='time',
         help='YYYMMDDHHMMSS or -XXX[smhd] time', default='0')
-parser.add_argument('-f', '--format', dest='format',
+args.add_argument('-f', '--format', dest='format',
         help='Output format', choices=('csv', 'pretty'), default='pretty')
-parser.add_argument('-a', '--all', dest='show_all', action='store_true',
+args.add_argument('-a', '--all', dest='show_all', action='store_true',
         help='Show all matching filters, even inactive ones')
 
-values = cli.values()
-expire = cli.parse_time(values.time)
+values = args.parse_args()
+logger = cli.setup_logging(values.verbose)
+
+from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
+args.load_config()
+
+expire = args.parse_time(values.time)
 expire_time = time.gmtime(expire)
 logger.debug("Searching for filters active for %s",
         time.strftime("%Y-%m-%d %H:%M:%S", expire_time))
 
-conn = boto.sdb.connect_to_region(cli.region)
+conn = boto.sdb.connect_to_region(args.region)
 
-suppress = SDBSuppressFilterBackend(conn, cli.domain)
+suppress = SDBSuppressFilterBackend(conn, args.domain)
 filters = suppress.get_filters(expire, not values.show_all)
 if values.format == 'csv':
     print "regex,created_at,expires,userid,ipaddr,comment,rowkey,active"
@@ -42,7 +43,7 @@ for item in filters:
             item.regex, created_at, item.created_at, expires, item.expires)
         print "\tcreated by: %s\tipaddr: %s\n\tcomment: %s" % (
             item.userid, item.ipaddr, item.comment)
-        if (item.active == 'True') and int(item.expires) >= cli.now():
+        if (item.active == 'True') and int(item.expires) >= args.now():
             print "\trowkey: %s\t\tactive: %s\n" % (item.rowkey, item.active)
         elif (item.active == 'True'):
             print "\trowkey: %s\t\tactive: False\n" % (item.rowkey)
