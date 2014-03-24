@@ -52,7 +52,7 @@ class SDBSuppressFilterBackend(SuppressFilterBackend):
         active = True/False to limit to only filters flagged 'active' = 'True'
         """
         self._setup_domain()
-        if start and end:
+        if expire:
             query = "select * from `%s` where `expires` >= '%s'" % (
                     self._domain_name, expire)
         else:

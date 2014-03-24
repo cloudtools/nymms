@@ -2,99 +2,53 @@
 
 __doc__ = """CLI tool to report on reactor suppression filters."""
 
-from nymms.config import config
 import boto.sdb
-from nymms.filter.sdb_filter import SDBSuppressFilterBackend
+from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
+from nymms.suppress.cli import SuppressCLI
 import argparse
 import time
 import logging
-import re
 
 
-def time_to_epoch(name, usertime):
-    """Convert YYYYMMDDHHMMSS or +/-XXXX[smhd] to Unix epoch time
+logger = logging.getLogger(__name__)
+parser = argparse.ArgumentParser(__doc__)
+cli = SuppressCLI(parser)
+parser.add_argument('-t', '--time', dest='time',
+        help='YYYMMDDHHMMSS or -XXX[smhd] time', default='0')
+parser.add_argument('-f', '--format', dest='format',
+        help='Output format', choices=('csv', 'pretty'), default='pretty')
+parser.add_argument('-a', '--all', dest='show_all', action='store_true',
+        help='Show all matching filters, even inactive ones')
 
-    if usertime == 0, returns None"""
-    if usertime == '0':
-        return None
-    now = int(time.time())
-    epoch = 0
-    if usertime[0] == '+' or usertime[0] == '-':
-        last_char = usertime[len(usertime) - 1]
-        user_value = usertime[0:(len(usertime) - 1)]
-        if last_char == 's':
-            epoch = now + int(user_value)
-        elif last_char == 'm':
-            epoch = now + (int(user_value) * 60)
-        elif last_char == 'h':
-            epoch = now + (int(user_value) * 60 * 60)
-        elif last_char == 'd':
-            epoch = now + (int(user_value) * 60 * 60 * 24)
-        else:
-            logger.error("Invalid %s time: %s.  Missing s/m/h/d qualifier\n",
-                name, usertime)
-            exit(-1)
-    else:
-        regex = re.compile('(\d{4})(\d{2}){5}')
-        match = regex.match(usertime)
-        epoch = int(time.strftime("%Y%m%d%H%M%S", (match[0], match[1],
-            match[2], match[3], match[4], match[5])))
-    return epoch
+values = cli.values()
+expire = cli.parse_time(values.time)
+expire_time = time.gmtime(expire)
+logger.debug("Searching for filters active for %s",
+        time.strftime("%Y-%m-%d %H:%M:%S", expire_time))
 
-if __name__ == '__main__':
-    logger = logging.getLogger(__name__)
-    parser = argparse.ArgumentParser(__doc__)
-    parser.add_argument('-c', '--config', dest='config',
-            default='/etc/nymms/config.yaml', help='NYMMS config file')
-    parser.add_argument('-r', '--region', dest='region',
-            help='Override config AWS region to connect to')
-    parser.add_argument('-d', '--domain', dest='domain',
-            default='reactor_suppress',
-            help='Override config AWS SDB Domain to use')
-    parser.add_argument('-t', '--time', dest='time',
-            help='YYYMMDDHHMMSS or -XXX[smhd] time', default='0')
-    parser.add_argument('-f', '--format', dest='format',
-            help='Output format', choices=('csv', 'pretty'), default='pretty')
-    parser.add_argument('-a', '--all', dest='show_all', action='store_true',
-            help='Show all matching filters, even inactive ones')
+conn = boto.sdb.connect_to_region(cli.region)
 
-    values = parser.parse_args()
-    expire = time_to_epoch('expire', values.time)
-    expire_time = time.gmtime(expire)
-    logger.debug("Searching for filters active for %s",
-            time.strftime("%Y-%m-%d %H:%M:%S", expire_time))
+suppress = SDBSuppressFilterBackend(conn, cli.domain)
+filters = suppress.get_filters(expire, not values.show_all)
+if values.format == 'csv':
+    print "regex,created_at,expires,userid,ipaddr,comment"
 
-    try:
-        config.load_config(values.config)
-        region = config.settings['region']
-        domain = config.settings['suppress']['domain']
-    except:
-        # there may not be a config file or it might be old
-        pass
-
-    if values.region:
-        region = values.region
-    if values.domain:
-        domain = values.domain
-
-    conn = boto.sdb.connect_to_region(region)
-
-    suppress = SDBSuppressFilterBackend(conn, domain)
-    filters = suppress.get_filters(expire, not values.show_all)
-    if values.format == 'csv':
-        print "regex,created_at,expires,userid,ipaddr,comment"
-
-    for item in filters:
-        expires = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(item.expires))
-        created_at = time.strftime("%Y-%m-%d %H:%M:%S",
-                time.gmtime(item.created_at))
-        if values.format == 'pretty':
-            print "regex: '%s'\n\tcreated at: %s (%d)\t\texpires: %s (%d)" % (
-                item.regex, created_at, item.created_at, expires, item.expires)
-            print "\tcreated by: %s\tipaddr: %s\n\tcomment: %s" % (
-                item.userid, item.ipaddr, item.comment)
+for item in filters:
+    expires = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(item.expires))
+    created_at = time.strftime("%Y-%m-%d %H:%M:%S",
+            time.gmtime(item.created_at))
+    if values.format == 'pretty':
+        print "regex: '%s'\n\tcreated at: %s (%d)\t\texpires: %s (%d)" % (
+            item.regex, created_at, item.created_at, expires, item.expires)
+        print "\tcreated by: %s\tipaddr: %s\n\tcomment: %s" % (
+            item.userid, item.ipaddr, item.comment)
+        if (item.active == 'True'):
             print "\trowkey: %s\t\tactive: %s\n" % (item.rowkey, item.active)
-        elif values.format == 'csv':
-            print "%s,%d,%d,%s,%s,%s,%s,%s" % (item.regex, item.created_at,
-                    item.expires, item.userid, item.ipaddr, item.comment,
-                    item.rowkey, item.active)
+        else:
+            print "\trowkey: %s\t\tdeactivated at: %s\n" % (item.rowkey,
+                    item.active)
+
+    elif values.format == 'csv':
+        print "%s,%d,%d,%s,%s,%s,%s,%s" % (item.regex, item.created_at,
+                item.expires, item.userid, item.ipaddr, item.comment,
+                item.rowkey, item.active)
