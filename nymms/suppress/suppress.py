@@ -3,6 +3,7 @@ import re
 
 
 class ReactorFilter(object):
+    """Class wrapper around our SDB row's"""
     def __init__(self, item):
         self.regex = str(item['regex'])
         self.created_at = int(str(item['created_at']))
@@ -14,21 +15,10 @@ class ReactorFilter(object):
         self.active = str(item['active'])
         self.re = re.compile(self.regex)
 
-    def to_dict(self):
-        return {'regex': self.regex,
-                'created_at': str(self.created_at),
-                'expires': str(self.expires),
-                'userid': self.userid,
-                'ipaddr': self.ipaddr,
-                'comment': self.comment,
-                'rowkey': self.rowkey,
-                'active': self.active
-                }
-
 
 class SuppressFilterBackend(object):
     """Parent SuppressFilterBackend class.  Don't use this directly!
-    
+
     You need to define:
     add_filter(self, regex, expires, comment, userid, ipaddr)
     get_filters(self, expire, active)
@@ -61,7 +51,7 @@ class SuppressFilterBackend(object):
         return self._cached_filters
 
     def filtered_out(self, message):
-        """Returns True if the given message matches one of our active filters"""
+        """Returns True if given message matches one of our active filters"""
         filters = self.get_cached_current_filters()
         for item in filters:
             if item.re.search(message):
