@@ -47,7 +47,7 @@ SCHEMA = {
         'task_expiration': {
             'type': 'integer', 'minimum': 0,
         },
-        'filter': {
+        'suppress': {
             'type': 'object',
             'properties': {
                 'domain': {
