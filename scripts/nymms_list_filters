@@ -31,7 +31,7 @@ conn = boto.sdb.connect_to_region(cli.region)
 suppress = SDBSuppressFilterBackend(conn, cli.domain)
 filters = suppress.get_filters(expire, not values.show_all)
 if values.format == 'csv':
-    print "regex,created_at,expires,userid,ipaddr,comment"
+    print "regex,created_at,expires,userid,ipaddr,comment,rowkey,active"
 
 for item in filters:
     expires = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(item.expires))
@@ -42,10 +42,12 @@ for item in filters:
             item.regex, created_at, item.created_at, expires, item.expires)
         print "\tcreated by: %s\tipaddr: %s\n\tcomment: %s" % (
             item.userid, item.ipaddr, item.comment)
-        if (item.active == 'True'):
+        if (item.active == 'True') and int(item.expires) >= cli.now():
             print "\trowkey: %s\t\tactive: %s\n" % (item.rowkey, item.active)
+        elif (item.active == 'True'):
+            print "\trowkey: %s\t\tactive: False\n" % (item.rowkey)
         else:
-            print "\trowkey: %s\t\tdeactivated at: %s\n" % (item.rowkey,
+            print "\trowkey: %s\t\tactive: deactivated (%s)\n" % (item.rowkey,
                     item.active)
 
     elif values.format == 'csv':
