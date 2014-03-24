@@ -4,9 +4,6 @@ import sys
 import re
 import argparse
 
-DEFAULT_REGION = 'us-east-1'
-DEFAULT_DOMAIN = 'reactor_suppress'
-
 
 class SuppressCLI(NymmsDaemonCommand):
     def __init__(self, *args, **kwargs):
@@ -25,26 +22,23 @@ class SuppressCLI(NymmsDaemonCommand):
         return self.values
 
     def load_config(self):
+        # load nymms.config here so we don't get errors about a missing logger
+        # if we had loaded it up at the top of the file.
         from nymms.config import config
-        # default is config file
-        try:
-            config.load_config(self.values.config)
-            self.region = config.settings['region']
-            self.domain = config.settings['suppress']['domain']
-        except:
-            # there may not be a config file or it might be old
-            pass
-        # override with cli options
+
+        # prefer CLI values if we have them
         if self.values.region:
             self.region = self.values.region
         if self.values.domain:
             self.domain = self.values.domain
-        # if not set via cli or config, use defaults
-        if not self.region:
-            self.region = DEFAULT_REGION
-        if not self.domain:
-            self.domain = DEFAULT_DOMAIN
-        return self.values
+
+        # fallback to the config file if we have to
+        if not self.domain or not self.region:
+            config.load_config(self.values.config)
+            if not self.region:
+                self.region = config.settings['region']
+            if not self.domain:
+                self.domain = config.settings['suppress']['domain']
 
     def now(self, reset=False):
         if self._now and not reset:
