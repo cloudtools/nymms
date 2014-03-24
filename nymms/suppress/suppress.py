@@ -54,7 +54,7 @@ class SuppressFilterBackend(object):
         if (self._filter_cache_time + self._filter_cache_timeout) <= now:
             self._filter_cache_time = now
             self._cached_filters = []
-            filters = self._suppress.get_active_filters()
+            filters = self.get_active_filters()
             for item in filters:
                 self._cached_filters.append(item)
 

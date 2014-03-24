@@ -21,11 +21,10 @@ queue_name = config.settings['reactor']['queue_name']
 handler_config_path = config.settings['reactor']['handler_config_path']
 wait_time = config.settings['reactor']['queue_wait_time']
 visibility_timeout = config.settings['reactor']['visibility_timeout']
-filter_domain = config.settings['filter']['domain']
-filter_cache_timeout = config.settings['filter']['cache_timeout']
+suppress_domain = config.settings['suppress']['domain']
+suppress_cache_timeout = config.settings['suppress']['cache_timeout']
 daemon = AWSReactor(conn_mgr, results_topic, state_domain, queue_name,
-       filter_domain, filter_cache_timeout)
-
+       suppress_domain, suppress_cache_timeout)
 daemon.main(handler_config_path,
            wait_time=wait_time,
            visibility_timeout=visibility_timeout)
