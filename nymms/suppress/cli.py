@@ -3,7 +3,10 @@ from nymms.utils.cli import NymmsDaemonCommand
 import sys
 import re
 import argparse
+from nymms.config import config
+import logging
 
+logger = logging.getLogger(__name__)
 
 class SuppressCLI(NymmsDaemonCommand):
     def __init__(self, *args, **kwargs):
@@ -22,10 +25,6 @@ class SuppressCLI(NymmsDaemonCommand):
         return self.values
 
     def load_config(self):
-        # load nymms.config here so we don't get errors about a missing logger
-        # if we had loaded it up at the top of the file.
-        from nymms.config import config
-
         # prefer CLI values if we have them
         if self.values.region:
             self.region = self.values.region
@@ -34,7 +33,12 @@ class SuppressCLI(NymmsDaemonCommand):
 
         # fallback to the config file if we have to
         if not self.domain or not self.region:
-            config.load_config(self.values.config)
+            try:
+                config.load_config(self.values.config)
+            except IOError:
+                logger.error("Please specify --region and --domain")
+                exit(-1)
+
             if not self.region:
                 self.region = config.settings['region']
             if not self.domain:
