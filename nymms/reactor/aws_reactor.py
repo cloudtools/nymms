@@ -60,7 +60,7 @@ class AWSReactor(Reactor):
                                                     origin=result)
             result_obj.validate()
 
-        if self._suppress_backend.filtered_out(result_obj.id):
-            return None
+            if self._suppress_backend.filtered_out(result_obj.id):
+                return None
 
         return result_obj

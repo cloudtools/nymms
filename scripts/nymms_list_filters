@@ -35,6 +35,9 @@ if values.format == 'csv':
     print "regex,created_at,expires,userid,ipaddr,comment,rowkey,active"
 
 for item in filters:
+    if item.expires < args.now() and not values.show_all:
+        continue
+
     expires = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(item.expires))
     created_at = time.strftime("%Y-%m-%d %H:%M:%S",
             time.gmtime(item.created_at))

@@ -43,20 +43,20 @@ logger = cli.setup_logging(values.verbose)
 from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
 args.load_config()
 
-expires = cli.parse_time(values.expires)
+expires = args.parse_time(values.expires)
 
-if expires < cli.now():
+if expires < args.now():
     logger.error("Expires must be in the future")
     exit(-1)
 
-now_time = time.gmtime(cli.now())
+now_time = time.gmtime(args.now())
 expires_time = time.gmtime(expires)
 logger.debug("Currently %s, will expire at %s\n",
         time.strftime("%Y-%m-%d %H:%M:%S", now_time),
         time.strftime("%Y-%m-%d %H:%M:%S", expires_time))
 
-conn = boto.sdb.connect_to_region(cli.region)
+conn = boto.sdb.connect_to_region(args.region)
 
-suppress = SDBSuppressFilterBackend(conn, cli.domain)
+suppress = SDBSuppressFilterBackend(conn, args.domain)
 suppress.add_filter(values.filter,
         expires, values.comment, values.userid, values.ipaddr)
