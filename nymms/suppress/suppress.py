@@ -2,7 +2,7 @@ import time
 import re
 
 
-class ReactorFilter(object):
+class ReactorSuppress(object):
     """Class wrapper around our SDB row's"""
     def __init__(self, item):
         self.regex = str(item['regex'])
@@ -30,12 +30,12 @@ class SuppressFilterBackend(object):
         self._filter_cache_time = None
         self._cached_filters = []
 
-    def get_active_filters(self):
+    def get_active_suppressions(self):
         """Returns a list of filters which are currently active in SDB"""
         now = int(time.time())
-        return self.get_filters(now, True)
+        return self.get_suppressions(now, True)
 
-    def get_cached_current_filters(self):
+    def get_cached_current_suppressions(self):
         """Returns a list of currently active suppression filters"""
         now = int(time.time())
         if not self._filter_cache_time:
@@ -44,28 +44,28 @@ class SuppressFilterBackend(object):
         if (self._filter_cache_time + self._filter_cache_timeout) <= now:
             self._filter_cache_time = now
             self._cached_filters = []
-            filters = self.get_active_filters()
+            filters = self.get_active_suppressions()
             for item in filters:
                 self._cached_filters.append(item)
 
         return self._cached_filters
 
-    def filtered_out(self, message):
+    def is_suppressed(self, message):
         """Returns True if given message matches one of our active filters"""
-        filters = self.get_cached_current_filters()
+        filters = self.get_cached_current_suppressions()
         for item in filters:
             if item.re.search(message):
-                return True
+                return item
         return False
 
-    def add_filter(self, **kwargs):
+    def add_suppression(self, **kwargs):
         raise NotImplementedError
 
-    def get_filters(self, **kwargs):
+    def get_suppressions(self, **kwargs):
         raise NotImplementedError
 
-    def deactivate_filter(self, **kwargs):
+    def deactivate_suppression(self, **kwargs):
         raise NotImplementedError
 
-    def delete_all_filters(self):
+    def delete_all_suppresions(self):
         raise NotImplementedError

@@ -14,7 +14,7 @@ args.add_argument('-t', '--time', dest='time',
 args.add_argument('-f', '--format', dest='format',
         help='Output format', choices=('csv', 'pretty'), default='pretty')
 args.add_argument('-a', '--all', dest='show_all', action='store_true',
-        help='Show all matching filters, even inactive ones')
+        help='Show all matching suppression filters, even inactive ones')
 
 values = args.parse_args()
 logger = cli.setup_logging(values.verbose)
@@ -24,13 +24,13 @@ args.load_config()
 
 expire = args.parse_time(values.time)
 expire_time = time.gmtime(expire)
-logger.debug("Searching for filters active for %s",
+logger.debug("Searching for suppression filters active for %s",
         time.strftime("%Y-%m-%d %H:%M:%S", expire_time))
 
 conn = boto.sdb.connect_to_region(args.region)
 
 suppress = SDBSuppressFilterBackend(conn, args.domain)
-filters = suppress.get_filters(expire, not values.show_all)
+filters = suppress.get_suppressions(expire, not values.show_all)
 if values.format == 'csv':
     print "regex,created_at,expires,userid,ipaddr,comment,rowkey,active"
 

@@ -68,7 +68,6 @@ class SuppressCLI(NymmsDaemonCommand):
             elif last_char == 'm':
                 epoch = now + (int(user_value) * 60)
             elif last_char == 'h':
-                print "user_value: %s" % (user_value,)
                 epoch = now + (int(user_value) * 60 * 60)
             elif last_char == 'd':
                 epoch = now + (int(user_value) * 60 * 60 * 24)

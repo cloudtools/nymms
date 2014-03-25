@@ -27,7 +27,7 @@ userid = os.getlogin()
 
 args = SuppressCLI()
 args.add_argument('-e', '--expires', dest='expires', default='+1h',
-        help='YYYYMMDDHHMMSS or +XXX[smhd] to expire in. default: +1h')
+        help='YYYYMMDDHHMMSS or +XXX[smhd] to expire in. default: %(default)s')
 args.add_argument('-f', '--filter', dest='filter', required=True,
         help='Regex to filter events with')
 args.add_argument('-C', '--comment', dest='comment', required=True,
@@ -58,5 +58,5 @@ logger.debug("Currently %s, will expire at %s\n",
 conn = boto.sdb.connect_to_region(args.region)
 
 suppress = SDBSuppressFilterBackend(conn, args.domain)
-suppress.add_filter(values.filter,
+suppress.add_suppression(values.filter,
         expires, values.comment, values.userid, values.ipaddr)

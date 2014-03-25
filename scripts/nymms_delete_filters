@@ -13,9 +13,9 @@ import sys
 
 args = SuppressCLI()
 args.add_argument('-k', '--key', dest='rowkey',
-        help='rowkey of filter to deactivate')
+        help='rowkey of suppression filter to deactivate')
 args.add_argument('--delete-all-filters', dest='delete_all_filters',
-        help='Delete all the filters', action='store_true')
+        help='Delete all the suppression filters', action='store_true')
 
 values = args.parse_args()
 logger = cli.setup_logging(values.verbose)
@@ -24,7 +24,7 @@ from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
 args.load_config()
 
 conn = boto.sdb.connect_to_region(args.region)
-filter_backend = SDBSuppressFilterBackend(conn, args.domain)
+suppress = SDBSuppressFilterBackend(conn, args.domain)
 if values.delete_all_filters:
     print "Deleting all filters!"
     print "Press CTRL-C to abort!"
@@ -33,10 +33,10 @@ if values.delete_all_filters:
         sys.stdout.flush()
         time.sleep(1)
     print ""
-    filter_backend.delete_all_filters()
+    suppress.delete_all_suppresions()
 elif values.rowkey:
     print "Deactivating %s" % (values.rowkey,)
-    filter_backend.deactivate_filter(values.rowkey)
+    suppress.deactivate_suppression(values.rowkey)
 else:
     print "Please provide a --key or --delete-all-filters"
     exit(-1)

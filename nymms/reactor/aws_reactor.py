@@ -66,10 +66,13 @@ class AWSReactor(Reactor):
                 suppression_filter = self._suppress_backend.is_suppressed(
                         result_obj.id)
                 if suppression_filter:
-                    logger.debug("Suppressed %s with '%s' @ %s" % (
+                    created_at = time.gmtime(suppression_filter.created_at)
+                    timestr = time.strftime("%Y-%m-%d %H:%M:%S UTC", created_at)
+                    logger.debug("Suppressed %s with '%s' (%s) created at %s" % (
                         result_obj.id,
                         suppression_filter.regex,
-                        suppression_filter.created_at))
+                        suppression_filter.rowkey,
+                        timestr))
                     # result was suppressed, so reading from the queue again
                     result_obj = False
                     continue
