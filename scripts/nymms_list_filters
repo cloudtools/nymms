@@ -3,12 +3,12 @@
 __doc__ = """CLI tool to report on reactor suppression filters."""
 
 import boto.sdb
-from nymms.suppress.cli import SuppressCLI
+from nymms.suppress.cli import SuppressCommandArgs
 import time
 from nymms.utils import cli
 
 
-args = SuppressCLI()
+args = SuppressCommandArgs()
 args.add_argument('-t', '--time', dest='time',
         help='YYYMMDDHHMMSS or -XXX[smhd] time', default='0')
 args.add_argument('-f', '--format', dest='format',

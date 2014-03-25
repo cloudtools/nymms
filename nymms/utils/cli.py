@@ -15,8 +15,8 @@ def setup_logging(verbose=False):
     return logutil.setup_root_logger(stdout=level)
 
 
-class NymmsDaemonCommand(argparse.ArgumentParser):
+class NymmsCommandArgs(argparse.ArgumentParser):
     def __init__(self, *args, **kwargs):
-        super(NymmsDaemonCommand, self).__init__(*args, **kwargs)
+        super(NymmsCommandArgs, self).__init__(*args, **kwargs)
         self.add_argument('-v', '--verbose', action='count', default=0)
         self.add_argument('-c', '--config', default='/etc/nymms/config.yaml')

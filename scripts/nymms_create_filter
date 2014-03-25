@@ -3,7 +3,7 @@
 __doc__ = """CLI tool to create new reactor suppression filters"""
 
 import boto.sdb
-from nymms.suppress.cli import SuppressCLI
+from nymms.suppress.cli import SuppressCommandArgs
 from nymms.utils import cli
 import argparse
 import time
@@ -25,7 +25,7 @@ def get_ipaddr():
 ipaddr = get_ipaddr()
 userid = os.getlogin()
 
-args = SuppressCLI()
+args = SuppressCommandArgs()
 args.add_argument('-e', '--expires', dest='expires', default='+1h',
         help='YYYYMMDDHHMMSS or +XXX[smhd] to expire in. default: %(default)s')
 args.add_argument('-f', '--filter', dest='filter', required=True,

@@ -2,7 +2,7 @@
 
 from nymms.utils import aws_helper, cli
 
-parser = cli.NymmsDaemonCommand()
+parser = cli.NymmsCommandArgs()
 parser.add_argument('--realm',
                     help="If specified this probe will only execute monitors "
                          "in the given realm.")

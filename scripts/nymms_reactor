@@ -2,7 +2,7 @@
 
 from nymms.utils import aws_helper, cli
 
-parser = cli.NymmsDaemonCommand()
+parser = cli.NymmsCommandArgs()
 args = parser.parse_args()
 
 cli.setup_logging(args.verbose)

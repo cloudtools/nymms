@@ -3,7 +3,7 @@
 __doc__ = """CLI tool for marking reactor suppression as inactive"""
 
 import boto.sdb
-from nymms.suppress.cli import SuppressCLI
+from nymms.suppress.cli import SuppressCommandArgs
 from nymms.utils import cli
 import argparse
 import time
@@ -11,7 +11,7 @@ import logging
 import sys
 
 
-args = SuppressCLI()
+args = SuppressCommandArgs()
 args.add_argument('-k', '--key', dest='rowkey',
         help='rowkey of suppression filter to deactivate')
 args.add_argument('--deactivate-all-filters', dest='all_filters',

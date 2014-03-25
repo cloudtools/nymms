@@ -1,5 +1,5 @@
 import time
-from nymms.utils.cli import NymmsDaemonCommand
+from nymms.utils.cli import NymmsCommandArgs
 import sys
 import re
 import argparse
@@ -8,9 +8,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class SuppressCLI(NymmsDaemonCommand):
+class SuppressCommandArgs(NymmsCommandArgs):
     def __init__(self, *args, **kwargs):
-        super(SuppressCLI, self).__init__(*args, **kwargs)
+        super(SuppressCommandArgs, self).__init__(*args, **kwargs)
         self.add_argument('-r', '--region', dest='region',
                 help='Override config AWS region to connect to')
         self.add_argument('-d', '--domain', dest='domain',
@@ -21,7 +21,7 @@ class SuppressCLI(NymmsDaemonCommand):
         self.values = None
 
     def parse_args(self):
-        self.values = super(SuppressCLI, self).parse_args()
+        self.values = super(SuppressCommandArgs, self).parse_args()
         return self.values
 
     def load_config(self):
