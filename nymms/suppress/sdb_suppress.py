@@ -44,6 +44,7 @@ class SDBSuppressFilterBackend(SuppressFilterBackend):
                     'rowkey': rowkey,
                     'active': 'True'
                 }):
+            logger.debug("Added %s to %s" % (rowkey, self._domain_name))
             return rowkey
         else:
             return False
@@ -70,11 +71,6 @@ class SDBSuppressFilterBackend(SuppressFilterBackend):
             filters.append(ReactorSuppress(item))
 
         return filters
-
-    def delete_all_suppresions(self):
-        """Deletes all the suppression filters we have stored."""
-        self._setup_domain()
-        self._conn.delete_domain(self._domain_name)
 
     def deactivate_suppression(self, rowkey):
         """Deactivates a single suppression filter"""

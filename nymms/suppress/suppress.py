@@ -1,5 +1,8 @@
 import time
 import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ReactorSuppress(object):
@@ -20,10 +23,9 @@ class SuppressFilterBackend(object):
     """Parent SuppressFilterBackend class.  Don't use this directly!
 
     You need to define:
-    add_filter(self, regex, expires, comment, userid, ipaddr)
-    get_filters(self, expire, active)
-    delete_all_filters(self)
-    delete_filter(self, rowkey)
+    add_suppression(self, regex, expires, comment, userid, ipaddr)
+    get_suppressions(self, expire, active)
+    deactivate_suppression(self, rowkey)
     """
     def __init__(self, timeout):
         self._filter_cache_timeout = timeout
@@ -42,6 +44,7 @@ class SuppressFilterBackend(object):
             self._filter_cache_time = now - self._filter_cache_timeout
 
         if (self._filter_cache_time + self._filter_cache_timeout) <= now:
+            logger.debug("Refreshing reactor suppression cache")
             self._filter_cache_time = now
             self._cached_filters = []
             filters = self.get_active_suppressions()
@@ -67,5 +70,8 @@ class SuppressFilterBackend(object):
     def deactivate_suppression(self, **kwargs):
         raise NotImplementedError
 
-    def delete_all_suppresions(self):
-        raise NotImplementedError
+    def deactivate_all_suppressions(self):
+        """Deactivates all the active suppression filters we have currently."""
+        for item in self.get_active_suppressions():
+            logger.debug("Deactivating %s" % (rowkey,))
+            self.deactivate_suppression(item.rowkey)
