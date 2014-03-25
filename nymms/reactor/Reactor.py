@@ -98,8 +98,11 @@ class Reactor(NymmsDaemon):
         self._load_handlers(handler_config_path, **kwargs)
         while True:
             result = self.get_result(**kwargs)
-            if not result:
+            if result is None:
                 logger.debug('Result queue empty.')
+                continue
+            if result is False:
+                logger.debug('No unsuppressed events available.')
                 continue
             self.handle_result(result, **kwargs)
             result.delete()
