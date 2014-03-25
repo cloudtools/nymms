@@ -73,8 +73,8 @@ class SDBSuppressFilterBackend(SuppressFilterBackend):
 
     def delete_all_suppresions(self):
         """Deletes all the suppression filters we have stored."""
-        self._setup_domain()
-        self._conn.delete_domain(self._domain_name)
+        for item in self.get_suppressions():
+            self.deactivate_suppression(item.rowkey)
 
     def deactivate_suppression(self, rowkey):
         """Deactivates a single suppression filter"""
