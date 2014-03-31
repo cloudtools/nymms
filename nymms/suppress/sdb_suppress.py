@@ -7,6 +7,16 @@ from nymms.suppress.suppress import SuppressFilterBackend, ReactorSuppress
 logger = logging.getLogger(__name__)
 
 
+class SDBReactorSuppress(ReactorSuppress):
+    """We use a UUID4 as our rowkey in SDB"""
+    def __init__(self, item):
+        super(SDBReactorSuppress, self).__init__(item)
+        if 'rowkey' in item:
+            self.rowkey = str(item['rowkey'])
+        else:
+            self.rowkey = uuid.uuid4()
+
+
 class SDBSuppressFilterBackend(SuppressFilterBackend):
     def __init__(self, conn, timeout=60, domain_name='reactor_suppress'):
         self._conn = conn
@@ -22,35 +32,18 @@ class SDBSuppressFilterBackend(SuppressFilterBackend):
                 self._domain_name)
         self.domain = self._conn.create_domain(self._domain_name)
 
-    def add_suppression(self, regex, expires, comment, userid, ipaddr):
+    def add_suppression(self, suppress):
         """Adds a suppression filter to the SDB store
-
-        regex = regex to match against the NYMMS event key
-        expire = number of seconds this filter should be active
-        comment = Why you added this filter
-        userid = userid of user creating this filter
-        ipaddr = IP address of host creating this filter
         """
         self._setup_domain()
-        rowkey = uuid.uuid4()
-        if self.domain.put_attributes(rowkey,
-                {
-                    'regex': regex,
-                    'created_at': int(time.time()),
-                    'expires': expires,
-                    'comment': comment,
-                    'userid': userid,
-                    'ipaddr': ipaddr,
-                    'rowkey': rowkey,
-                    'active': 'True'
-                }):
-            logger.debug("Added %s to %s" % (rowkey, self._domain_name))
-            return rowkey
-        else:
-            return False
+        self.domain.put_attributes(suppress.rowkey, suppress.dict())
+        logger.debug("Added %s to %s" % (suppress.rowkey, self._domain_name))
+        return suppress.rowkey
 
     def get_suppressions(self, expire, active=True):
-        """Returns a list of suppression filters which were active between start and end
+        """Returns a list of suppression filters which were active between
+        start and end
+
         expire = expoch time
         active = True/False to limit to only filters flagged 'active' = 'True'
         """
@@ -66,11 +59,11 @@ class SDBSuppressFilterBackend(SuppressFilterBackend):
             query += " and `active` = 'True'"
         query += " order by expires"
 
-        filters = []
+        suppressors = []
         for item in self.domain.select(query):
-            filters.append(ReactorSuppress(item))
+            suppressors.append(SDBReactorSuppress(item))
 
-        return filters
+        return suppressors
 
     def deactivate_suppression(self, rowkey):
         """Deactivates a single suppression filter"""

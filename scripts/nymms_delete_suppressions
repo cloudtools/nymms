@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
-__doc__ = """CLI tool for marking reactor suppression as inactive"""
+"""CLI tool for marking reactor suppression as inactive"""
 
 import boto.sdb
 from nymms.suppress.cli import SuppressCommandArgs
+from nymms.utils.aws_helper import ConnectionManager
 from nymms.utils import cli
 import argparse
 import time
@@ -11,10 +12,10 @@ import logging
 import sys
 
 
-args = SuppressCommandArgs()
+args = SuppressCommandArgs(__doc__)
 args.add_argument('-k', '--key', dest='rowkey',
         help='rowkey of suppression filter to deactivate')
-args.add_argument('--deactivate-all-filters', dest='all_filters',
+args.add_argument('--deactivate-all', dest='all_filters',
         help='Deactivate all the suppression filters', action='store_true')
 
 values = args.parse_args()
@@ -23,17 +24,12 @@ logger = cli.setup_logging(values.verbose)
 from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
 args.load_config()
 
-conn = boto.sdb.connect_to_region(args.region)
-suppress = SDBSuppressFilterBackend(conn, args.domain)
+aws = ConnectionManager(region=args.region)
+suppress = SDBSuppressFilterBackend(aws.sdb, args.domain)
+
 if values.all_filters:
-    print "Deactivating all filters!"
-    print "Press CTRL-C to abort!"
-    for x in reversed(range(1, 6)):
-        sys.stdout.write("%d. " % (x,))
-        sys.stdout.flush()
-        time.sleep(1)
-    print ""
     suppress.deactivate_all_suppressions()
+    print "Deactivated all active suppression filters"
 elif values.rowkey:
     print "Deactivating %s" % (values.rowkey,)
     suppress.deactivate_suppression(values.rowkey)

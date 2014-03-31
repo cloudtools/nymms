@@ -6,24 +6,44 @@ logger = logging.getLogger(__name__)
 
 
 class ReactorSuppress(object):
-    """Class wrapper around our SDB row's"""
+    """Base class wrapper around our storage row"""
     def __init__(self, item):
-        self.regex = str(item['regex'])
-        self.created_at = int(str(item['created_at']))
-        self.expires = int(str(item['expires']))
-        self.userid = str(item['userid'])
-        self.ipaddr = str(item['ipaddr'])
+        # set self.rowkey in your subclass!!!
         self.comment = str(item['comment'])
-        self.rowkey = str(item['rowkey'])
-        self.active = str(item['active'])
+        self.expires = int(item['expires'])
+        self.ipaddr = str(item['ipaddr'])
+        self.regex = str(item['regex'])
         self.re = re.compile(self.regex)
+        self.userid = str(item['userid'])
+
+        if 'active' in item:
+            self.active = str(item['active'])
+        else:
+            self.active = True
+
+        if 'created_at' in item:
+            self.created_at = int(str(item['created_at']))
+        else:
+            self.created_at = int(time.time())
+
+    def dict(self):
+        return {
+                'active': self.active,
+                'comment': self.comment,
+                'created_at': self.created_at,
+                'expires': self.expires,
+                'ipaddr': self.ipaddr,
+                'regex': self.regex,
+                'userid': self.userid,
+                'rowkey': self.rowkey
+                }
 
 
 class SuppressFilterBackend(object):
     """Parent SuppressFilterBackend class.  Don't use this directly!
 
     You need to define:
-    add_suppression(self, regex, expires, comment, userid, ipaddr)
+    add_suppression(self, suppress)
     get_suppressions(self, expire, active)
     deactivate_suppression(self, rowkey)
     """
@@ -55,13 +75,13 @@ class SuppressFilterBackend(object):
 
     def is_suppressed(self, message):
         """Returns True if given message matches one of our active filters"""
-        filters = self.get_cached_current_suppressions()
-        for item in filters:
+        suppressions = self.get_cached_current_suppressions()
+        for item in suppressions:
             if item.re.search(message):
                 return item
         return False
 
-    def add_suppression(self, **kwargs):
+    def add_suppression(self, suppress):
         raise NotImplementedError
 
     def get_suppressions(self, **kwargs):
@@ -73,5 +93,5 @@ class SuppressFilterBackend(object):
     def deactivate_all_suppressions(self):
         """Deactivates all the active suppression filters we have currently."""
         for item in self.get_active_suppressions():
-            logger.debug("Deactivating %s" % (rowkey,))
+            logger.debug("Deactivating %s", item.rowkey)
             self.deactivate_suppression(item.rowkey)

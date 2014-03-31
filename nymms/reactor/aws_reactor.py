@@ -5,7 +5,7 @@ import time
 logger = logging.getLogger(__name__)
 
 from nymms import results
-from nymms.reactor.Reactor import Reactor
+from nymms.reactor.Reactor import Reactor, ReactorResult
 from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
 from nymms.utils.aws_helper import SNSTopic
 from nymms.state.sdb_state import SDBStateBackend
@@ -49,34 +49,29 @@ class AWSReactor(Reactor):
         visibility_timeout = kwargs.get('visibility_timeout', None)
         self._setup_queue()
         self._setup_topic()
-        result_obj = None
+        reactor_result = ReactorResult(None, False)
 
-        tryagain = True
-        while tryagain:
-            logger.debug("Getting result from queue %s.", self._queue_name)
-            result = self._queue.read(visibility_timeout=visibility_timeout,
-                                    wait_time_seconds=wait_time)
-            if result:
-                result_message = json.loads(result.get_body())['Message']
-                result_dict = json.loads(result_message)
-                result_obj = results.Result.deserialize(result_dict,
-                                                        origin=result)
-                result_obj.validate()
+        logger.debug("Getting result from queue %s.", self._queue_name)
+        result = self._queue.read(visibility_timeout=visibility_timeout,
+                                wait_time_seconds=wait_time)
+        if result:
+            result_message = json.loads(result.get_body())['Message']
+            result_dict = json.loads(result_message)
+            reactor_result.result_obj = results.Result.deserialize(result_dict,
+                                                    origin=result)
+            reactor_result.result_obj.validate()
+            
+            suppression_filter = self._suppress_backend.is_suppressed(
+                    reactor_result.result_obj.id)
+            if suppression_filter:
+                created_at = time.gmtime(suppression_filter.created_at)
+                timestr = time.strftime("%Y-%m-%d %H:%M:%S UTC", created_at)
+                logger.debug("Suppressed %s with '%s' (%s) created at %s" % (
+                    reactor_result.result_obj.id,
+                    suppression_filter.regex,
+                    suppression_filter.rowkey,
+                    timestr))
+                # result was suppressed, so reading from the queue again
+                reactor_result.suppressed = True
 
-                suppression_filter = self._suppress_backend.is_suppressed(
-                        result_obj.id)
-                if suppression_filter:
-                    created_at = time.gmtime(suppression_filter.created_at)
-                    timestr = time.strftime("%Y-%m-%d %H:%M:%S UTC", created_at)
-                    logger.debug("Suppressed %s with '%s' (%s) created at %s" % (
-                        result_obj.id,
-                        suppression_filter.regex,
-                        suppression_filter.rowkey,
-                        timestr))
-                    # result was suppressed, so reading from the queue again
-                    result_obj = False
-                    continue
-
-            # we got a valid result or empty queue so stop trying
-            tryagain = False
-        return result_obj
+        return reactor_result

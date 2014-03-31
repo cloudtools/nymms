@@ -12,6 +12,12 @@ from nymms.exceptions import OutOfDateState
 logger = logging.getLogger(__name__)
 
 
+class ReactorResult(object):
+    def __init__(self, result_obj, suppressed=False):
+        self.result_obj = result_obj
+        self.suppressed = suppressed
+
+
 class Reactor(NymmsDaemon):
     def __init__(self):
         self._handlers = {}
@@ -98,11 +104,12 @@ class Reactor(NymmsDaemon):
         self._load_handlers(handler_config_path, **kwargs)
         while True:
             result = self.get_result(**kwargs)
-            if result is None:
+            if not result.result_obj:
                 logger.debug('Result queue empty.')
                 continue
-            if result is False:
+            if result.suppressed is True:
                 logger.debug('No unsuppressed events available.')
+                result.result_obj.delete()
                 continue
-            self.handle_result(result, **kwargs)
-            result.delete()
+            self.handle_result(result.result_obj, **kwargs)
+            result.result_obj.delete()

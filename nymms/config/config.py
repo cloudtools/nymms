@@ -54,7 +54,7 @@ SCHEMA = {
                     'type': 'string',
                 },
                 'cache_timeout': {
-                    'type': 'string',
+                    'type': 'integer', 'minimum': 0,
                 },
             }
         },

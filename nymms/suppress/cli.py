@@ -8,6 +8,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class SuppressCommandArgs(NymmsCommandArgs):
     def __init__(self, *args, **kwargs):
         super(SuppressCommandArgs, self).__init__(*args, **kwargs)
@@ -76,8 +77,7 @@ class SuppressCommandArgs(NymmsCommandArgs):
                         "Missing s/m/h/d qualifier\n", expires)
                 exit(-1)
         else:
-            regex = re.compile('(\d{4})(\d{2}){5}')
-            match = regex.match(expires)
-            epoch = int(time.strftime("%Y%m%d%H%M%S", (match[0], match[1],
-                match[2], match[3], match[4], match[5])))
+            epoch = int(time.strftime("%s",
+                time.strptime(expires, "%Y%m%d%H%M%S")))
+
         return epoch

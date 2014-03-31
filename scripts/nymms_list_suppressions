@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 
-__doc__ = """CLI tool to report on reactor suppression filters."""
+"""CLI tool to report on reactor suppression filters."""
 
 import boto.sdb
 from nymms.suppress.cli import SuppressCommandArgs
+from nymms.utils.aws_helper import ConnectionManager
 import time
 from nymms.utils import cli
 
 
-args = SuppressCommandArgs()
+args = SuppressCommandArgs(__doc__)
 args.add_argument('-t', '--time', dest='time',
         help='YYYMMDDHHMMSS or -XXX[smhd] time', default='0')
 args.add_argument('-f', '--format', dest='format',
@@ -27,9 +28,9 @@ expire_time = time.gmtime(expire)
 logger.debug("Searching for suppression filters active for %s",
         time.strftime("%Y-%m-%d %H:%M:%S", expire_time))
 
-conn = boto.sdb.connect_to_region(args.region)
+aws = ConnectionManager(region=args.region)
+suppress = SDBSuppressFilterBackend(aws.sdb, args.domain)
 
-suppress = SDBSuppressFilterBackend(conn, args.domain)
 filters = suppress.get_suppressions(expire, not values.show_all)
 if values.format == 'csv':
     print "regex,created_at,expires,userid,ipaddr,comment,rowkey,active"
