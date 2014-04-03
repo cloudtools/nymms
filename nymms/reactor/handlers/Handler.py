@@ -9,6 +9,7 @@ class Handler(object):
     def __init__(self, config=None):
         self.config = config
         self._filters = []
+        self._enable_suppressions = None
 
     def _load_filters(self):
         filters = self.config.get('filters', [])
@@ -48,11 +49,15 @@ class Handler(object):
                      results)
         return all(results.values())
 
-    def _process(self, result, previous_state):
+    def _process(self, result, previous_state, suppressor_check_method):
+        """First checks to see if the given event should be filtered and
+        then sees if it passes the suppressor (if enabled).  If pass, then
+        call the subclass's process() method"""
         if self._filter(result, previous_state):
-            logger.debug("Handler %s filters returned true for %s, reacting.",
-                         self.__class__.__name__, result.id)
-            return self.process(result, previous_state)
+            if self.suppressions_enabled and suppressor_check_method(result):
+                logger.debug("Handler %s filters & suppressors returned true" +
+                    " for %s, reacting.", self.__class__.__name__, result.id)
+                return self.process(result, previous_state)
         logger.debug("Handler %s filters returned false for %s, skipping.",
                      self.__class__.__name__, result.id)
 
@@ -61,3 +66,11 @@ class Handler(object):
         process of reacting to a result.
         """
         raise NotImplementedError
+
+    @property
+    def suppressions_enabled(self):
+        """Are suppressions enabled for this handler?"""
+        if self._enable_suppressions is None:
+            self._enable_suppressions = self.config.pop(
+                    'enable_suppressions', False)
+        return self._enable_suppressions

@@ -2,6 +2,7 @@ import logging
 import glob
 import os
 import sys
+import time
 
 import nymms
 from nymms.daemon import NymmsDaemon
@@ -12,15 +13,10 @@ from nymms.exceptions import OutOfDateState
 logger = logging.getLogger(__name__)
 
 
-class ReactorResult(object):
-    def __init__(self, result_obj, suppressed=False):
-        self.result_obj = result_obj
-        self.suppressed = suppressed
-
-
 class Reactor(NymmsDaemon):
     def __init__(self):
         self._handlers = {}
+        self._suppress_backend = None
         super(Reactor, self).__init__()
 
     def _list_handler_configs(self, path):
@@ -32,6 +28,7 @@ class Reactor(NymmsDaemon):
 
     def _load_handler(self, handler_name, config, **kwargs):
         enabled = config.pop('enabled', False)
+
         if not enabled:
             logger.debug("Handler %s 'enabled' is not set to true. "
                          "Skipping.", handler_name)
@@ -82,11 +79,28 @@ class Reactor(NymmsDaemon):
     def save_state(self, task_id, result, previous):
         return self._state_backend.save_state(task_id, result, previous)
 
+    def is_suppressed(self, result):
+        """Returns True if we should suppress the given result for event"""
+        if not self._suppress_backend:
+            return False
+        suppression_filter = self._suppress_backend.is_suppressed(result.id)
+        if suppression_filter:
+            created_at = time.gmtime(suppression_filter.created_at)
+            timestr = time.strftime("%Y-%m-%d %H:%M:%S UTC", created_at)
+            logger.debug("Suppressed %s with '%s' (%s) created at %s" % (
+                result.id,
+                suppression_filter.regex,
+                suppression_filter.rowkey,
+                timestr))
+        return suppression_filter
+
     def handle_result(self, result, **kwargs):
         previous_state = self.get_state(result.id)
         for handler_name, handler in self._handlers.iteritems():
             try:
-                handler._process(result, previous_state)
+                # We do suppression AFTER filters, so we have to
+                # pass Reactor to the handler to do that for us
+                handler._process(result, previous_state, self.is_suppressed)
             except Exception:
                 logutil.log_exception("Unhandled %s handler "
                                       "exception:" % (handler_name,), logger)
@@ -104,12 +118,8 @@ class Reactor(NymmsDaemon):
         self._load_handlers(handler_config_path, **kwargs)
         while True:
             result = self.get_result(**kwargs)
-            if not result.result_obj:
+            if not result:
                 logger.debug('Result queue empty.')
                 continue
-            if result.suppressed is True:
-                logger.debug('No unsuppressed events available.')
-                result.result_obj.delete()
-                continue
-            self.handle_result(result.result_obj, **kwargs)
-            result.result_obj.delete()
+            self.handle_result(result, **kwargs)
+            result.delete()
