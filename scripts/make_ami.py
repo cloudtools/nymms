@@ -37,7 +37,8 @@ def get_ubuntu_ami(requested_region, release='precise'):
 
 
 def wait_for_instance_state(instance, state, timeout=None):
-    logger.debug("Waiting for instance to enter %s state...", state)
+    logger.debug("Waiting for instance %s to enter %s state...", instance.id,
+                 state)
     waited = 1
     while instance.update() != state:
         if timeout and waited > timeout:
@@ -68,9 +69,14 @@ def generate_cloud_config():
 
     packages = ['python-yaml', 'python-jinja2', 'python-boto', 'python-nymms',
                 'nymms-common', 'nymms-scheduler', 'nymms-probe',
-                'nymms-reactor', 'nagios-plugins']
+                'nymms-reactor', 'nagios-plugins', 'python-pip']
 
-    cloud_config = {'apt_sources': sources, 'packages': packages}
+    commands = ['pip install validictory']
+
+    cloud_config = {
+            'apt_sources': sources,
+            'packages': packages,
+            'runcmd': commands}
     return "#cloud-config\n" + yaml.dump(cloud_config)
 
 
@@ -124,7 +130,7 @@ if __name__ == '__main__':
                              'times.')
     parser.add_argument('-k', '--ssh-key', default='default',
                         help="SSH Keypair to use. Default: %(default)s")
-    parser.add_argument('-t', '--instance-type', default='m1.medium',
+    parser.add_argument('-t', '--instance-type', default='m3.medium',
                         help="Instance type to use to build AMI. "
                              "Default: %(default)s")
     parser.add_argument('-g', '--security-group', default='default',
