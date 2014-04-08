@@ -9,7 +9,8 @@ class Handler(object):
     def __init__(self, config=None):
         self.config = config
         self._filters = []
-        self._enable_suppressions = None
+        self._suppressions_enabled = self.config.pop('suppressions_enabled',
+                False)
 
     def _load_filters(self):
         filters = self.config.get('filters', [])
@@ -70,7 +71,4 @@ class Handler(object):
     @property
     def suppressions_enabled(self):
         """Are suppressions enabled for this handler?"""
-        if self._enable_suppressions is None:
-            self._enable_suppressions = self.config.pop(
-                    'enable_suppressions', False)
-        return self._enable_suppressions
+        return self._suppressions_enabled
