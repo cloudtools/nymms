@@ -136,6 +136,11 @@ DEFAULTS = {
             'path': os.path.join(default_conf_dir, 'nodes.yaml'),
         }
     },
+
+    'suppress': {
+        'domain': 'reactor_suppress',
+        'cache_timeout': 60,
+    }
 }
 
 settings = None

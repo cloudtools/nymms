@@ -1,12 +1,8 @@
 import time
-from nymms.utils.cli import NymmsCommandArgs
 import sys
 import re
 import argparse
-from nymms.config import config
-import logging
-
-logger = logging.getLogger(__name__)
+from nymms.utils.cli import NymmsCommandArgs
 
 
 class SuppressCommandArgs(NymmsCommandArgs):
@@ -26,6 +22,10 @@ class SuppressCommandArgs(NymmsCommandArgs):
         return self.values
 
     def load_config(self):
+        # load nymms.config here to avoid the error: 
+        # No handlers could be found for logger "nymms.config.config"
+        from nymms.config import config
+
         # prefer CLI values if we have them
         if self.values.region:
             self.region = self.values.region
