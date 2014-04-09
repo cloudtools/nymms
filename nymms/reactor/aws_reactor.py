@@ -18,6 +18,7 @@ class AWSReactor(Reactor):
             suppress_domain_name, suppress_cache_timeout=60,
             state_backend=SDBStateBackend,
             suppress_backend=SDBSuppressFilterBackend):
+        super(AWSReactor, self).__init__()
         self._conn = conn_mgr
         self._topic_name = topic_name
         self._queue_name = queue_name
@@ -26,7 +27,6 @@ class AWSReactor(Reactor):
         self._state_backend = state_backend(conn_mgr.sdb, state_domain_name)
         self._suppress_backend = suppress_backend(conn_mgr.sdb,
                 suppress_cache_timeout, suppress_domain_name)
-        super(AWSReactor, self).__init__()
 
     def _setup_queue(self):
         if self._queue:

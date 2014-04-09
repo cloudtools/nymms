@@ -82,6 +82,7 @@ class Reactor(NymmsDaemon):
     def is_suppressed(self, result):
         """Returns True if we should suppress the given result for event"""
         if not self._suppress_backend:
+            logger.debug("is_suppressed(): No suppress backend, so returning False")
             return False
         suppression_filter = self._suppress_backend.is_suppressed(result.id)
         if suppression_filter:
