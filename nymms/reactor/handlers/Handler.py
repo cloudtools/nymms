@@ -83,6 +83,6 @@ class Handler(object):
         raise NotImplementedError
 
     @property
-    def suppressions_enabled(self):
+    def suppression_enabled(self):
         """Are suppressions enabled for this handler?"""
         return self._suppression_enabled
