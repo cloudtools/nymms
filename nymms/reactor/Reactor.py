@@ -40,7 +40,7 @@ class Reactor(NymmsDaemon):
             return handler_cls(config)
         except Exception as e:
             logutil.log_exception("Skipping handler %s due to "
-                "unhandled exception:" % (handler_name), logger)
+                "unhandled exception:", handler_name, logger)
             return None
 
     def _load_handlers(self, handler_config_path, **kwargs):
@@ -88,11 +88,11 @@ class Reactor(NymmsDaemon):
         if suppression_filter:
             created_at = time.gmtime(suppression_filter.created_at)
             timestr = time.strftime("%Y-%m-%d %H:%M:%S UTC", created_at)
-            logger.debug("Suppressed %s with '%s' (%s) created at %s" % (
+            logger.debug("Suppressed %s with '%s' (%s) created at %s",
                 result.id,
                 suppression_filter.regex,
                 suppression_filter.rowkey,
-                timestr))
+                timestr)
         return suppression_filter
 
     def handle_result(self, result, **kwargs):

@@ -37,7 +37,7 @@ class SDBSuppressFilterBackend(SuppressFilterBackend):
         """
         self._setup_domain()
         self.domain.put_attributes(suppress.rowkey, suppress.dict())
-        logger.debug("Added %s to %s" % (suppress.rowkey, self._domain_name))
+        logger.debug("Added %s to %s", suppress.rowkey, self._domain_name)
         return suppress.rowkey
 
     def get_suppressions(self, expire, active=True):
