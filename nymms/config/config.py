@@ -138,7 +138,7 @@ DEFAULTS = {
     },
 
     'suppress': {
-        'domain': 'reactor_suppress',
+        'domain': 'nymms_suppress',
         'cache_timeout': 60,
     }
 }

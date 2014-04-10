@@ -18,7 +18,7 @@ class SDBReactorSuppress(ReactorSuppress):
 
 
 class SDBSuppressFilterBackend(SuppressFilterBackend):
-    def __init__(self, conn, timeout=60, domain_name='reactor_suppress'):
+    def __init__(self, conn, timeout=60, domain_name='nymms_suppress'):
         self._conn = conn
         self._domain_name = domain_name
         self.domain = None
