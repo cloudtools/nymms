@@ -52,7 +52,7 @@ class AWSReactor(Reactor):
 
         logger.debug("Getting result from queue %s.", self._queue_name)
         result = self._queue.read(visibility_timeout=visibility_timeout,
-                                wait_time_seconds=wait_time)
+                                  wait_time_seconds=wait_time)
         result_obj = None
         if result:
             result_message = json.loads(result.get_body())['Message']

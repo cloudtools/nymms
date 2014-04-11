@@ -1,30 +1,23 @@
 import time
 import re
 import logging
+import uuid
 
 logger = logging.getLogger(__name__)
 
 
 class ReactorSuppress(object):
-    """Base class wrapper around our storage row"""
+    """Record of the suppression to store in SDB/etc"""
     def __init__(self, item):
-        # set self.rowkey in your subclass!!!
         self.comment = str(item['comment'])
         self.expires = int(item['expires'])
         self.ipaddr = str(item['ipaddr'])
         self.regex = str(item['regex'])
         self.re = re.compile(self.regex)
         self.userid = str(item['userid'])
-
-        if 'active' in item:
-            self.active = str(item['active'])
-        else:
-            self.active = True
-
-        if 'created_at' in item:
-            self.created_at = int(str(item['created_at']))
-        else:
-            self.created_at = int(time.time())
+        self.rowkey = str(item.get('rowkey', uuid.uuid4()))
+        self.active = str(item.get('active', True))
+        self.created_at = int(item.get('created_at', time.time()))
 
     def dict(self):
         return {
@@ -48,30 +41,29 @@ class SuppressFilterBackend(object):
     deactivate_suppression(self, rowkey)
     """
     def __init__(self, timeout):
-        self._filter_cache_timeout = timeout
-        self._filter_cache_time = None
-        self._cached_filters = []
+        self._cache_timeout = timeout
+        self._cache_expire_time = 0
+        self._cached_suppressions = []
 
     def get_active_suppressions(self):
-        """Returns a list of filters which are currently active in SDB"""
+        """Returns a list of suppression filters which are currently
+        active in SDB"""
         now = int(time.time())
         return self.get_suppressions(now, True)
 
     def get_cached_current_suppressions(self):
         """Returns a list of currently active suppression filters"""
         now = int(time.time())
-        if not self._filter_cache_time:
-            self._filter_cache_time = now - self._filter_cache_timeout
 
-        if (self._filter_cache_time + self._filter_cache_timeout) <= now:
+        if self._cache_expire_time < now:
             logger.debug("Refreshing reactor suppression cache")
-            self._filter_cache_time = now
-            self._cached_filters = []
+            self._cache_expire_time = now + self._cache_timeout
+            self._cached_suppressions = []
             filters = self.get_active_suppressions()
             for item in filters:
-                self._cached_filters.append(item)
+                self._cached_suppressions.append(item)
 
-        return self._cached_filters
+        return self._cached_suppressions
 
     def is_suppressed(self, message):
         """Returns True if given message matches one of our active filters"""
@@ -92,6 +84,9 @@ class SuppressFilterBackend(object):
 
     def deactivate_all_suppressions(self):
         """Deactivates all the active suppression filters we have currently."""
+        deactivated = []
         for item in self.get_active_suppressions():
             logger.debug("Deactivating %s", item.rowkey)
+            deactivated.append(item.rowkey)
             self.deactivate_suppression(item.rowkey)
+        return deactivated

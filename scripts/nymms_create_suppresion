@@ -3,11 +3,9 @@
 """CLI tool to create new reactor suppression filters"""
 
 import boto.sdb
-from nymms.suppress.cli import SuppressCommandArgs
-from nymms.suppress.sdb_suppress import SDBReactorSuppress
+from nymms.suppress.suppress import ReactorSuppress
 from nymms.utils.aws_helper import ConnectionManager
 from nymms.utils import cli
-import argparse
 import time
 import os
 import logging
@@ -27,43 +25,47 @@ def get_ipaddr():
 ipaddr = get_ipaddr()
 userid = os.getlogin()
 
-args = SuppressCommandArgs(__doc__)
-args.add_argument('-e', '--expires', dest='expires', default='+1h',
+parser = cli.NymmsCommandArgs(__doc__)
+parser.add_argument('-e', '--expires', dest='expires', default='+1h',
         help='YYYYMMDDHHMMSS or +XXX[smhd] to expire in. default: %(default)s')
-args.add_argument('-f', '--filter', dest='filter', required=True,
+parser.add_argument('-f', '--filter', dest='filter', required=True,
         help='Regex to filter events with')
-args.add_argument('-C', '--comment', dest='comment', required=True,
+parser.add_argument('-C', '--comment', dest='comment', required=True,
         help='Comment to record with filter')
-args.add_argument('-i', '--ipaddr', dest='ipaddr', default=ipaddr,
-        help='Override IP address to record: %s' % (ipaddr,))
-args.add_argument('-u', '--userid', dest='userid', default=userid,
-        help='Override userid to record: %s' % (userid,))
+parser.add_argument('-i', '--ipaddr', dest='ipaddr', default=ipaddr,
+        help='Override IP address to record: %(default)s')
+parser.add_argument('-u', '--userid', dest='userid', default=userid,
+        help='Override userid to record: %(default)s')
 
-values = args.parse_args()
-logger = cli.setup_logging(values.verbose)
+args = parser.parse_args()
+logger = cli.setup_logging(args.verbose)
 
 from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
-args.load_config()
+from nymms.config import config
+config.load_config(args.config)
 
-expires = args.parse_time(values.expires)
+current_epoch = int(time.time())
+expires = cli.parse_time(args.expires, current_epoch)
 
-if expires < args.now():
+if expires <= current_epoch:
     logger.error("Expires must be in the future")
     exit(-1)
 
-now_time = time.gmtime(args.now())
+current_epoch_time = time.gmtime(current_epoch)
 expires_time = time.gmtime(expires)
 logger.debug("Currently %s, will expire at %s\n",
-        time.strftime("%Y-%m-%d %H:%M:%S", now_time),
+        time.strftime("%Y-%m-%d %H:%M:%S", current_epoch_time),
         time.strftime("%Y-%m-%d %H:%M:%S", expires_time))
 
-aws = ConnectionManager(region=args.region)
-suppress = SDBSuppressFilterBackend(aws.sdb, args.domain)
+aws = ConnectionManager(region=config.settings['region'])
+suppress = SDBSuppressFilterBackend(aws.sdb,
+        config.settings['suppress']['cache_timeout'],
+        config.settings['suppress']['domain'])
 
-suppress_obj = SDBReactorSuppress({
-    'comment': values.comment,
+suppress_obj = ReactorSuppress({
+    'comment': args.comment,
     'expires': expires,
-    'ipaddr': values.ipaddr,
-    'regex': values.filter,
-    'userid': values.userid})
+    'ipaddr': args.ipaddr,
+    'regex': args.filter,
+    'userid': args.userid})
 suppress.add_suppression(suppress_obj)

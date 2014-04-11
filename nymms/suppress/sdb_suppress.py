@@ -1,20 +1,9 @@
 import logging
 import traceback
 import time
-import uuid
 from nymms.suppress.suppress import SuppressFilterBackend, ReactorSuppress
 
 logger = logging.getLogger(__name__)
-
-
-class SDBReactorSuppress(ReactorSuppress):
-    """We use a UUID4 as our rowkey in SDB"""
-    def __init__(self, item):
-        super(SDBReactorSuppress, self).__init__(item)
-        if 'rowkey' in item:
-            self.rowkey = str(item['rowkey'])
-        else:
-            self.rowkey = uuid.uuid4()
 
 
 class SDBSuppressFilterBackend(SuppressFilterBackend):
@@ -22,8 +11,8 @@ class SDBSuppressFilterBackend(SuppressFilterBackend):
         self._conn = conn
         self._domain_name = domain_name
         self.domain = None
-        logger.debug("%s initialized.", self.__class__.__name__)
         super(SDBSuppressFilterBackend, self).__init__(timeout)
+        logger.debug("%s initialized.", self.__class__.__name__)
 
     def _setup_domain(self):
         if self.domain:
@@ -61,7 +50,7 @@ class SDBSuppressFilterBackend(SuppressFilterBackend):
 
         suppressors = []
         for item in self.domain.select(query):
-            suppressors.append(SDBReactorSuppress(item))
+            suppressors.append(ReactorSuppress(item))
 
         return suppressors
 

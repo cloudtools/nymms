@@ -3,6 +3,8 @@ import sys
 import re
 import argparse
 from nymms.utils.cli import NymmsCommandArgs
+import logger
+
 
 
 class SuppressCommandArgs(NymmsCommandArgs):
@@ -14,7 +16,7 @@ class SuppressCommandArgs(NymmsCommandArgs):
                 help='Override config AWS SDB Domain to use')
         self.region = None
         self.domain = None
-        self._now = None
+        self.reference_time = int(time.time())
         self.values = None
 
     def parse_args(self):
@@ -45,13 +47,6 @@ class SuppressCommandArgs(NymmsCommandArgs):
             if not self.domain:
                 self.domain = config.settings['suppress']['domain']
 
-    def now(self, reset=False):
-        if self._now and not reset:
-            return self._now
-
-        self._now = int(time.time())
-        return self._now
-
     def parse_time(self, expires):
         """Parses a time in YYYYMMDDHHMMSS or +XXXX[smhd] and returns
         epoch time
@@ -60,18 +55,17 @@ class SuppressCommandArgs(NymmsCommandArgs):
         if expires == '0':
             return None
 
-        now = self.now()
         if expires[0] == '+' or expires[0] == '-':
             last_char = expires[len(expires) - 1]
             user_value = expires[0:(len(expires) - 1)]
             if last_char == 's':
-                epoch = now + int(user_value)
+                epoch = self.reference_time + int(user_value)
             elif last_char == 'm':
-                epoch = now + (int(user_value) * 60)
+                epoch = self.reference_time + (int(user_value) * 60)
             elif last_char == 'h':
-                epoch = now + (int(user_value) * 60 * 60)
+                epoch = self.reference_time + (int(user_value) * 60 * 60)
             elif last_char == 'd':
-                epoch = now + (int(user_value) * 60 * 60 * 24)
+                epoch = self.reference_time + (int(user_value) * 60 * 60 * 24)
             else:
                 sys.stderr.write("Invalid time format: %s.  " +
                         "Missing s/m/h/d qualifier\n", expires)
