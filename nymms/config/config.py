@@ -47,6 +47,17 @@ SCHEMA = {
         'task_expiration': {
             'type': 'integer', 'minimum': 0,
         },
+        'suppress': {
+            'type': 'object',
+            'properties': {
+                'domain': {
+                    'type': 'string',
+                },
+                'cache_timeout': {
+                    'type': 'integer', 'minimum': 0,
+                },
+            }
+        },
         'probe': {
             'type': 'object',
             'properties': {
@@ -125,6 +136,11 @@ DEFAULTS = {
             'path': os.path.join(default_conf_dir, 'nodes.yaml'),
         }
     },
+
+    'suppress': {
+        'domain': 'nymms_suppress',
+        'cache_timeout': 60,
+    }
 }
 
 settings = None

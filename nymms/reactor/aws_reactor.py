@@ -1,10 +1,12 @@
 import logging
 import json
+import time
 
 logger = logging.getLogger(__name__)
 
 from nymms import results
 from nymms.reactor.Reactor import Reactor
+from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
 from nymms.utils.aws_helper import SNSTopic
 from nymms.state.sdb_state import SDBStateBackend
 
@@ -13,14 +15,18 @@ from boto.sqs.message import RawMessage
 
 class AWSReactor(Reactor):
     def __init__(self, conn_mgr, topic_name, state_domain_name, queue_name,
-                 state_backend=SDBStateBackend):
+            suppress_domain_name, suppress_cache_timeout=60,
+            state_backend=SDBStateBackend,
+            suppress_backend=SDBSuppressFilterBackend):
+        super(AWSReactor, self).__init__()
         self._conn = conn_mgr
         self._topic_name = topic_name
         self._queue_name = queue_name
         self._topic = None
         self._queue = None
         self._state_backend = state_backend(conn_mgr.sdb, state_domain_name)
-        super(AWSReactor, self).__init__()
+        self._suppress_backend = suppress_backend(conn_mgr.sdb,
+                suppress_cache_timeout, suppress_domain_name)
 
     def _setup_queue(self):
         if self._queue:
@@ -43,6 +49,7 @@ class AWSReactor(Reactor):
         visibility_timeout = kwargs.get('visibility_timeout', None)
         self._setup_queue()
         self._setup_topic()
+
         logger.debug("Getting result from queue %s.", self._queue_name)
         result = self._queue.read(visibility_timeout=visibility_timeout,
                                   wait_time_seconds=wait_time)
@@ -53,4 +60,5 @@ class AWSReactor(Reactor):
             result_obj = results.Result.deserialize(result_dict,
                                                     origin=result)
             result_obj.validate()
+
         return result_obj

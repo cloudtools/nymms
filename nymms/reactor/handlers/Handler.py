@@ -9,6 +9,12 @@ class Handler(object):
     def __init__(self, config=None):
         self.config = config
         self._filters = []
+        self._suppression_enabled = self.config.pop(
+            'suppression_enabled',
+            False)
+        logger.debug("%s suppression enabled is %s",
+                     self.__class__.__name__,
+                     self._suppression_enabled)
 
     def _load_filters(self):
         filters = self.config.get('filters', [])
@@ -41,23 +47,41 @@ class Handler(object):
                 results[f.__name__] = f(result, previous_state)
             except Exception as e:
                 logger.exception("Filter %s on Handler %s had an unhandled "
-                                 "exception. Ignoring:",
-                                 f.__name__, self.__class__.__name__)
+                        "exception. Ignoring: %s",
+                        f.__name__, self.__class__.__name__, e)
                 continue
         logger.debug("Handler %s filter results: %s", self.__class__.__name__,
-                     results)
+                    results)
         return all(results.values())
 
-    def _process(self, result, previous_state):
+    def _process(self, result, previous_state, is_suppressed):
+        """First checks to see if the given event should be filtered and
+        then sees if it passes the suppressor (if enabled).  If pass, then
+        call the subclass's process() method"""
+        cname = self.__class__.__name__
         if self._filter(result, previous_state):
-            logger.debug("Handler %s filters returned true for %s, reacting.",
-                         self.__class__.__name__, result.id)
-            return self.process(result, previous_state)
-        logger.debug("Handler %s filters returned false for %s, skipping.",
-                     self.__class__.__name__, result.id)
+            if not self.suppression_enabled:
+                logger.debug("Handler %s filters returned true for %s",
+                        cname, result.id)
+                return self.process(result, previous_state)
+            elif self.suppression_enabled and not is_suppressed(result):
+                logger.debug("Handler %s filters & suppressor returned true"
+                        " for %s, reacting.", cname, result.id)
+                return self.process(result, previous_state)
+            else:
+                logger.debug("Handler %s suppressor returned false"
+                        " for %s, skipping.", cname, result.id)
+        else:
+            logger.debug("Handler %s filters returned false for %s, skipping.",
+                    cname, result.id)
 
     def process(self, result, previous_state):
         """ Meant to be overridden by subclasses - should handle the actual
         process of reacting to a result.
         """
         raise NotImplementedError
+
+    @property
+    def suppression_enabled(self):
+        """Are suppressions enabled for this handler?"""
+        return self._suppression_enabled
