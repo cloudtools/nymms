@@ -30,8 +30,8 @@ class SchedulerLock(object):
         """ Should be overridden and return True or False depending on whether
         it got the lock or not.
         """
-        pass
+        raise NotImplemented
 
     def release(self):
         """ Should be overridden. """
-        pass
+        raise NotImplemented
