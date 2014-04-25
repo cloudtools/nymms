@@ -5,6 +5,7 @@ import nymms
 from nymms.daemon import NymmsDaemon
 from nymms.resources import Node
 from nymms.tasks import Task
+from nymms.scheduler.lock.SchedulerLock import NoOpLock
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +15,9 @@ class Scheduler(NymmsDaemon):
 
     def __init__(self, node_backend, lock=None):
         self._node_backend = node_backend
+        if not lock:
+            lock = NoOpLock()
+
         self._lock = lock
         super(Scheduler, self).__init__()
 

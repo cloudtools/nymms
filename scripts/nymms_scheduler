@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
+import sys
+
 from nymms.utils import aws_helper, cli
 
 parser = cli.NymmsCommandArgs()
 args = parser.parse_args()
 
-cli.setup_logging(args.verbose)
+logger = cli.setup_logging(args.verbose)
 
 from nymms.config import config
 from nymms.resources import load_resources
@@ -21,10 +23,33 @@ resource_version = load_resources(settings['resources'])
 backend_cls = load_object_from_string(settings['scheduler']['backend'])
 backend_args = settings['scheduler']['backend_args']
 backend = backend_cls(**backend_args)
-interval = settings['scheduler']['interval']
-task_expiration = settings['task_expiration']
 
 conn_mgr = aws_helper.ConnectionManager(config.settings['region'])
 
-s = AWSScheduler(backend, conn_mgr, config.settings['tasks_queue'])
+interval = settings['scheduler']['interval']
+task_expiration = settings['task_expiration']
+
+lock = None
+
+lock_backend = settings['scheduler'].get('lock_backend')
+lock_args = settings['scheduler'].get('lock_args')
+
+if lock_args:
+    lock_duration = lock_args.get('duration')
+    if lock_duration <= interval:
+        logger.error("Your lock duration (%s) should be larger than your "
+                     "scheduler interval (%s) or weird things can happen.",
+                     lock_duration, interval)
+        sys.exit(1)
+
+if lock_backend:
+    if lock_backend.lower() == 'sdb':
+        from nymms.scheduler.lock.SDBLock import SDBLock
+        lock = SDBLock(conn=conn_mgr.sdb, **lock_args)
+    else:
+        logger.error("Unrecognized lock_backend '%s'.")
+        logger.error("Valid lock_backends are: sdb")
+        sys.exit(1)
+
+s = AWSScheduler(backend, conn_mgr, config.settings['tasks_queue'], lock=lock)
 s.main(interval=interval, task_expiration=task_expiration)

@@ -35,3 +35,16 @@ class SchedulerLock(object):
     def release(self):
         """ Should be overridden. """
         raise NotImplemented
+
+
+class NoOpLock(SchedulerLock):
+    def __init__(self):
+        logger.warning("!!! Using NoOpLock")
+        logger.warning("!!! Do not do this if you are planning to run more ")
+        logger.warning("!!! than one scheduler.""")
+
+    def acquire(self):
+        return True
+
+    def release(self):
+        return True

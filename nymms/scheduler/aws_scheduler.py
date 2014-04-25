@@ -13,13 +13,12 @@ logger = logging.getLogger(__name__)
 
 
 class AWSScheduler(Scheduler):
-    def __init__(self, node_backend, conn_mgr, task_queue):
-        self._node_backend = node_backend
+    def __init__(self, node_backend, conn_mgr, task_queue, lock=None):
         self._conn = conn_mgr
         self._queue_name = task_queue
         self._default_queue = None
         self._realm_queues = {}
-        super(Scheduler, self).__init__()
+        super(Scheduler, self).__init__(node_backend, lock)
 
     def _set_expiration(self, queue, expiration):
         if expiration:

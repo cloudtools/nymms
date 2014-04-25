@@ -5,15 +5,16 @@ logger = logging.getLogger(__name__)
 import time
 
 from boto.exception import SDBResponseError
+from aws_helper.connection import ConnectionManager
 
 from nymms.scheduler.lock.SchedulerLock import SchedulerLock
 
 
 class SDBLock(SchedulerLock):
-    def __init__(self, duration, conn, domain_name,
+    def __init__(self, duration, region, domain_name,
                  lock_name="scheduler_lock"):
         super(SDBLock, self).__init__(duration, lock_name)
-        self.conn = conn
+        self.conn = ConnectionManager(region).sdb
         self.domain_name = domain_name
         self.domain = None
         self.lock = None
