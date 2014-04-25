@@ -20,9 +20,9 @@ class SchedulerLock(object):
         """
         return uuid.uuid4().hex
 
-    def lock_expired(self, timestamp, now):
+    def lock_expired(self, expiry, now):
         """ Returns True if the lock is expired, False otherwise.  """
-        if not timestamp or int(now) - int(timestamp) > self.duration:
+        if not expiry or int(now) > int(expiry):
             return True
         return False
 

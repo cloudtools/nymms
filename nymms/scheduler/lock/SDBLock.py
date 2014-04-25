@@ -31,13 +31,15 @@ class SDBLock(SchedulerLock):
         now = int(time.time())
         existing_lock = self.domain.get_item(self.lock_name,
                                               consistent_read=True)
-        lock_body = {'timestamp': now, 'owner': self.id}
+        lock_body = {'expiry': now + self.duration,
+                     'timestamp': now,
+                     'owner': self.id}
         expected_value = ['timestamp', False]
         if existing_lock:
             logger.info("Existing lock found: %s", existing_lock)
             existing_ts = existing_lock['timestamp']
             if not existing_lock['owner'] == self.id:
-                if not self.lock_expired(existing_ts, now):
+                if not self.lock_expired(existing_lock['expiry'], now):
                     logger.info("Lock still valid, not taking over.")
                     return False
                 else:

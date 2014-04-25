@@ -15,5 +15,5 @@ class TestSchedulerLock(unittest.TestCase):
         expired_lock = NOW - (DURATION + 5)
         self.assertIs(self.lock.lock_expired(expired_lock, NOW),
                           True)
-        valid_lock = NOW -1
+        valid_lock = NOW + 5
         self.assertIs(self.lock.lock_expired(valid_lock, NOW), False)
