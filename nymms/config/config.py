@@ -101,6 +101,12 @@ SCHEMA = {
                 'backend_args': {
                     'type': 'object',
                 },
+                'lock_backend': {
+                    'type': 'string',
+                },
+                'lock_args': {
+                    'type': 'object',
+                },
             },
         },
     }
@@ -134,7 +140,13 @@ DEFAULTS = {
         'backend': 'nymms.scheduler.backends.yaml_backend.YamlBackend',
         'backend_args': {
             'path': os.path.join(default_conf_dir, 'nodes.yaml'),
-        }
+        },
+        'lock_backend': 'SDB',
+        'lock_args': {
+            'duration': 360,
+            'domain_name': 'nymms_locks',
+            'lock_name': 'scheduler_lock',
+        },
     },
 
     'suppress': {
