@@ -33,18 +33,21 @@ class Scheduler(NymmsDaemon):
         raise NotImplementedError
 
     def run(self, **kwargs):
+        interval = kwargs.get('interval')
         while True:
             start = time.time()
             if self._lock.acquire():
-                try:
-                    self.run_once(**kwargs)
-                finally:
-                    self._lock.release()
-            run_time = time.time() - start
-            logger.info("Scheduler iteration took %d seconds.", run_time)
-            interval = kwargs.get('interval')
-            sleep_time = interval - max(run_time, 0)
-            logger.info("Scheduler sleeping for %d seconds.", sleep_time)
+                self.run_once(**kwargs)
+                run_time = time.time() - start
+                logger.info("Scheduler iteration took %d seconds.", run_time)
+                sleep_time = interval - max(run_time, 0)
+                logger.info("Scheduler sleeping for %d seconds.", sleep_time)
+            else:
+                # Only sleep for 10 seconds before checking the lock again
+                # when we don't acquire the lock. Allows for faster takeover.
+                sleep_time = 10
+                logger.info("Failed to acquire lock, sleeping for %d seconds.",
+                            sleep_time)
             time.sleep(sleep_time)
 
     def run_once(self, **kwargs):
