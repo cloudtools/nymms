@@ -18,7 +18,7 @@ class AWSScheduler(Scheduler):
         self._queue_name = task_queue
         self._default_queue = None
         self._realm_queues = {}
-        super(Scheduler, self).__init__(node_backend, lock)
+        super(AWSScheduler, self).__init__(node_backend, lock)
 
     def _set_expiration(self, queue, expiration):
         if expiration:
