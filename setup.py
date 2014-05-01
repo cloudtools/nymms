@@ -1,14 +1,8 @@
 import os
-import sys
 from setuptools import setup, find_packages
 import glob
 
 src_dir = os.path.dirname(__file__)
-
-def get_version(src_dir):
-    sys.path.insert(0, src_dir)
-    import nymms
-    return nymms.__version__
 
 
 def read(filename):
@@ -20,7 +14,7 @@ def read(filename):
 if __name__ == '__main__':
     setup(
         name='nymms',
-        version=get_version(src_dir),
+        version='0.4.1',
         author='Michael Barrett',
         author_email='loki77@gmail.com',
         license="New BSD license",
