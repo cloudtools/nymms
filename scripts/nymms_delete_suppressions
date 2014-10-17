@@ -35,5 +35,5 @@ elif args.rowkey:
     print "Deactivating %s" % (args.rowkey,)
     suppress.deactivate_suppression(args.rowkey)
 else:
-    print "Please provide a --key or --deactivate-all-filters"
+    print "Please provide a --key or --deactivate-all"
     exit(-1)
