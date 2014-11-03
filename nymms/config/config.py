@@ -113,7 +113,7 @@ SCHEMA = {
 }
 
 DEFAULTS = {
-    'monitor_timeout': 15,
+    'monitor_timeout': 30,
     'resources': os.path.join(default_conf_dir, 'resources.yaml'),
     'region': 'us-east-1',
     'state_domain': 'nymms_state',
