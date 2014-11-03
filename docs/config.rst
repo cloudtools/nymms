@@ -10,7 +10,7 @@ scripts in NYMMS.
 
 You can see an example by expanding the code block below.
 
-.. hidden-code-block:: python
+.. hidden-code-block:: yaml
     :starthidden: True
     :label: Example config.yaml
 
@@ -210,7 +210,7 @@ monitoring groups
     lets you add some monitoring group specific variables that can be used in
     commands templates and other places.
 
-.. hidden-code-block:: python
+.. hidden-code-block:: yaml
     :starthidden: True
     :label: Example resources.yaml
 
@@ -298,11 +298,30 @@ monitoring_groups
     Often times the values will be blank (see the example).
 
 
-nodes.yaml
-==========
-
 private.yaml
 ============
+
+The private.yaml file is used to give context variables that can be used in
+various monitors, but which are not included when the tasks and results are
+sent over the wire. Largely these are used for things like passwords that
+are needed by monitors.
+
+The variables that are provided by private.yaml need to be prepended by 
+*__private.* when referring to them in templates. For example, if you have
+a private variable called *db_password* you would refer to it as
+*__private.db_password* in templates.
+
+The contents of the private.yaml are simple key/value pairs.
+
+.. hidden-code-block:: yaml
+    :starthidden: True
+    :label: Example resources.yaml
+
+    example_password: example
+    db_password: db_password
+
+nodes.yaml
+==========
 
 Reactor Handlers
 ================
