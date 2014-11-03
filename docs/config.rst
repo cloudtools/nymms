@@ -12,6 +12,7 @@ You can see an example by expanding the code block below.
 
 .. hidden-code-block:: python
     :starthidden: True
+    :label: Example config.yaml
 
     # can be defined on a task by task basis
     monitor_timeout: 15
@@ -39,6 +40,7 @@ You can see an example by expanding the code block below.
       visibility_timeout: 30
       queue_name: reactor_queue
       handler_config_path: /etc/nymms/handlers
+
 
 
 monitor_timeout
