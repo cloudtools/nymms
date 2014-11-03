@@ -122,14 +122,14 @@ def depart_hcb_html(self, node):
     """Depart hidden code block"""
     # Stub because of SkipNode in visit
 
-def visit_hcb_pdf(self, node):
+def visit_hcb_latex(self, node):
     raise nodes.SkipNode
 
-def depart_hcb_pdf(self, node):
+def depart_hcb_latex(self, node):
     return
 
 
 def setup(app):
     app.add_directive('hidden-code-block', HiddenCodeBlock)
     app.add_node(hidden_code_block, html=(visit_hcb_html, depart_hcb_html),
-                 pdf=(visit_hcb_pdf, depart_hcb_pdf))
+                 latex=(visit_hcb_latex, depart_hcb_latex))
