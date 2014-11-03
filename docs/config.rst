@@ -46,6 +46,7 @@ task_expiration
 probe
     This is a dictionary where probe specific configuration goes.
     *Type:* Dictionary.
+
     max_retries
         The maximum amount of times the probe will retry a monitor that is in
         a non-OK state.
