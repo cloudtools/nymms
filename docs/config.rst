@@ -191,6 +191,113 @@ suppress
 resources.yaml
 ==============
 
+The resources.yaml file is where you define your commands, monitors and
+monitoring groups.
+
+commands
+    Commands are where you define the commands that will be used for
+    monitoring services.  The main config for each command is the
+    *command_string*, which is a templatized string that defines the command
+    line to a command line executable.
+
+monitors
+    Monitors are specific instances of commands, allowing you to fill in
+    templated variables in the command used.  This allows your commands to
+    be fairly generic and easily re-usable.
+
+monitoring groups
+    Monitoring groups are used to tie monitors to individual nodes.  It also
+    lets you add some monitoring group specific variables that can be used in
+    commands templates and other places.
+
+.. hidden-code-block:: python
+    :starthidden: True
+    :label: Example resources.yaml
+
+    commands:
+      check_https:
+        command_string: /usr/lib/nagios/plugins/check_http -H {{address}} -S -u {{url}} -m {{minimum_size}} -w {{warn_timeout}} -c {{crit_timeout}}
+        warn_timeout: 1
+        crit_timeout: 10
+      check_http:
+        command_string: /usr/lib/nagios/plugins/check_http -H {{address}} -u {{url}} -w {{warn_timeout}} -c {{crit_timeout}}
+        warn_timeout: 1
+        crit_timeout: 10
+      check_https_cert:
+        command_string: /usr/lib/nagios/plugins/check_http -H {{address}} -S -u {{url}} -C {{cert_days}}
+      check_file:
+        command_string: /usr/bin/test -f {{file_name}}
+
+    monitoring_groups:
+      all:
+      local:
+      google:
+
+    monitors:
+      google_http:
+        command: check_http
+        url: /
+        monitoring_groups:
+          - google
+      file_tmp_woot:
+        command: check_file
+        file_name: /tmp/woot
+        monitoring_groups:
+          - local
+
+Config Options
+--------------
+
+commands
+    A dictionary of commands, the key of each is a unique name for the command,
+    and the value is another dictionary with the commands configuration.
+    Other than the *command_string* config option, you can specify any others
+    you like - they will be accessible in the template of the *command_string*
+    itself.
+    *Type:* Dictionary.
+
+    command_string
+        A command line string using Jinja's variable syntax. (ie:
+        {{variable}}).
+        *Type:* String.
+
+    *other configs*
+        You can specify as many other key/value entries as you like. They will
+        be useable as variables in the *command_string* itself. Often times the
+        values set here will be used as defaults for the command, provided
+        the variable isn't set anywhere else (such as on the monitor, or the
+        node).
+
+monitors
+    A dictionary of monitors, each of which calls a command defined above. The
+    key of each entry is the name of the monitor, the value is another
+    dictionary which contains configuration values for that monitor.
+    *Type:* Dictionary
+
+    command
+        The name of a command defined in the resources file. This is the
+        command that will be called for this monitor.
+        *Type:* String.
+
+    monitoring_groups
+        A list of monitoring groups that this monitor is a part of. This is
+        how you tie monitors to nodes - every monitor that is attached to
+        a monitoring_group will be ran against every node that is attached
+        to that monitoring_group.
+
+    *other configs*
+        You can specify as many other key/value entries as you like for each
+        monitor. They will be useable as variables in the template strings used
+        in the command for this monitor.
+
+
+monitoring_groups
+    A dictionary of monitoring groups which tie together monitors and nodes.
+    The keys of the dictionary are the monitoring_groups names, while the
+    values are any extra config you want to put into the command context.
+    Often times the values will be blank (see the example).
+
+
 nodes.yaml
 ==========
 
