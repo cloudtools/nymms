@@ -52,12 +52,106 @@ probe
         a non-OK state.
         *Type:* Integer. *Default:* 2
 
-    queue_wait_time:
+    queue_wait_time
         The amount of time the probe will wait for a task to appear in the
         tasks_queue. AWS SQS only allows this to be a maximum of 20 seconds.
         In most cases, the default should be fine.
         *Type:* Integer. *Default:* 20
-        
+
+    retry_delay
+        The amount of time in seconds that a probe will delay retries on
+        non-OK, non-HARD monitors.  This allows you to quickly retry monitors
+        that are supposed to be failing, to verify that there is an actual
+        issue.
+        *Type:* Integer. *Default:* 30
+
+reactor
+    This is a dictionary where reactor specific configuration goes.
+    *Type:* Dictionary
+
+    handler_config_path
+        The directory where `Reactor Handlers`_ specific configurations are
+        found.
+        *Type:* String. *Default:* /etc/nymms/handlers
+
+    queue_name
+        The name of the SQS queue where reactions will be found.
+        *Type:* String. *Default:* reactor_queue
+
+    queue_wait_time
+        The amount of time the probe will wait for a result to appear in the
+        queue named in reactor.queue_name. AWS SQS only allows this to be a
+        maximum of 20 seconds.
+        In most cases, the default should be fine.
+        *Type:* Integer. *Default:* 20
+
+    visibility_timeout
+        The amount of time (in seconds) that a message will disappear from the
+        SQS reactor queue (defined in reactor.queue_name above) when it is
+        picked up by a reactor. If the reactor doesn't finish it's work and
+        delete the message within this amount of time, the message will
+        re-appear in the queue. This allows the reactions to survive reactor
+        crashes and the like.
+        *Type:* Integer. *Default:* 30
+
+scheduler
+    This is a dictionary where reactor specific configuration goes.
+    *Type:* Dictionary
+
+    interval
+        How often, in seconds, the scheduler will schedule tasks.
+        *Type:* Integer. *Default:* 300
+
+    backend
+        The dot-separated class path to use for the backend. The backend
+        is what is used to find nodes that need to be monitored.
+        *Type:* String.
+        *Default:* nymms.scheduler.backends.yaml_backend.YamlBackend
+
+    backend_args
+        Any configuration args that the scheduler.backend above needs.
+        *Type:* Dictionary
+
+        path
+            This is used by the YamlBackend, which is the default. This
+            gives the name of the yaml file with node definitions that
+            the YamlBackend uses.
+            *Type:* String. *Default:* /etc/nymms/nodes.yaml
+
+    lock_backend
+        The backend used for locking multiple schedulers. Currently only
+        SDB is available.
+        *Type:* String. *Default:* SDB
+
+    lock_args
+        Any configuration args that the scheduler.lock_backend needs.
+        *Type:* Dictionary.
+
+        duration
+            How long, in seconds, the scheduler will keep the lock for.
+            *Type:* Integer. *Default:* 360
+
+        domain_name
+            The SDB domain name where locks are stored.
+            *Type:* String. *Default:* nymms_locks
+
+        lock_name
+            The name of the lock.
+            *Type:* String. *Default:* scheduler_lock
+
+
+suppress
+    These are the config settings used by the suppression system.
+    *Type:* Dictionary.
+
+        domain
+            The SDB domain where suppressions will be stored.
+            *Type:* String. *Default:* nymms_suppress
+
+        cache_timeout
+            The amount of time, in seconds, to keep suppressions cached.
+            *Type:* Integer. *Default:* 60
+
 
 resources.yaml
 ==============
