@@ -2,6 +2,19 @@
 Configuration
 =============
 
+The default configuration language for NYMMS is written in `YAML`_. For the
+most part it follows the YAML_ standard. It has one main addition, the
+!include macro.
+
+!include can be used to include another file in a given file. This is useful
+when you have a main config file (say nodes.yaml_) but want to allow external
+programs to provide more config (say in /etc/nymms/nodes/\*.yaml).
+
+In that specific example you'd put the following in the yaml file where you
+want the files included::
+
+    !include /etc/nymms/nodes/*.yaml
+
 config.yaml
 ===========
 
@@ -325,3 +338,5 @@ nodes.yaml
 
 Reactor Handlers
 ================
+
+.. _YAML: http://www.yaml.org/
