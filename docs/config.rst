@@ -8,7 +8,7 @@ most part it follows the YAML_ standard. It has one main addition, the
 
 !include can be used to include another file in a given file. This is useful
 when you have a main config file (say nodes.yaml_) but want to allow external
-programs to provide more config (say in /etc/nymms/nodes/\*.yaml).
+programs to provide more config (say in :file:`/etc/nymms/nodes/\*.yaml`).
 
 In that specific example you'd put the following in the yaml file where you
 want the files included::
@@ -64,7 +64,7 @@ monitor_timeout
 resources
     This points to the filesystem location of the resources config (see
     resources.yaml_).
-    *Type:* String, file location. *Default:* /etc/nymms/resources.yaml
+    *Type:* String, file location. *Default:* :file:`/etc/nymms/resources.yaml`
 
 region
     The AWS region used by the various daemons.
@@ -84,7 +84,7 @@ results_topic
 
 private_context_file
     The location of the private context file (see private.yaml_).
-    *Type:* String, file location. *Default:* /etc/nymms/private.yaml
+    *Type:* String, file location. *Default:* :file:`/etc/nymms/private.yaml`
 
 task_expiration
     If a task is found by a probe, and it is older than this time in seconds,
@@ -120,7 +120,7 @@ reactor
     handler_config_path
         The directory where `Reactor Handlers`_ specific configurations are
         found.
-        *Type:* String. *Default:* /etc/nymms/handlers
+        *Type:* String. *Default:* :file:`/etc/nymms/handlers`
 
     queue_name
         The name of the SQS queue where reactions will be found.
@@ -164,7 +164,7 @@ scheduler
             This is used by the YamlBackend, which is the default. This
             gives the name of the yaml file with node definitions that
             the YamlBackend uses.
-            *Type:* String. *Default:* /etc/nymms/nodes.yaml
+            *Type:* String. *Default:* :file:`/etc/nymms/nodes.yaml`
 
     lock_backend
         The backend used for locking multiple schedulers. Currently only
