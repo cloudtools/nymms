@@ -328,7 +328,7 @@ The contents of the private.yaml are simple key/value pairs.
 
 .. hidden-code-block:: yaml
     :starthidden: True
-    :label: Example resources.yaml
+    :label: Example private.yaml
 
     example_password: example
     db_password: db_password
@@ -344,7 +344,7 @@ following options:
 
 .. hidden-code-block:: yaml
     :starthidden: True
-    :label: Example resources.yaml
+    :label: Example nodes.yaml
 
     !include /etc/nymms/nodes/\*.yaml
 
