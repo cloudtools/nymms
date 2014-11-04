@@ -336,7 +336,42 @@ The contents of the private.yaml are simple key/value pairs.
 nodes.yaml
 ==========
 
+The nodes.yaml file is the file used by default by the YamlBackend, which is
+used by the scheduler to figure out what nodes (instances, hosts, etc) need
+to be monitored. It's a dictionary of node entries - each entry's key is
+the name of the node. The value of each entry is a dictionary with the
+following options:
+
+.. hidden-code-block:: yaml
+    :starthidden: True
+    :label: Example resources.yaml
+
+    !include /etc/nymms/nodes/\*.yaml
+
+    local:
+      monitoring_groups:
+        - local
+    www.google.com:
+      monitoring_groups:
+        - google
+
+address
+    The network address of the node. This can be an ip address, or a hostname.
+    If no address is provided, then it is assumed that the name of the node
+    entry is the address.
+    *Type:* String. *Default:* The node entry name.
+
+monitoring_groups
+    A list of monitoring groups (as defined in resources.yaml) that this node
+    is part of. Every monitor that is attached to a monitoring group will be
+    applied to every node in the monitoring group.
+    *Type:* List.
+
+realm
+    The realm this node is a part of.  See the realms_ documentation.
+
 Reactor Handlers
 ================
 
 .. _YAML: http://www.yaml.org/
+.. _realms: realms.html
