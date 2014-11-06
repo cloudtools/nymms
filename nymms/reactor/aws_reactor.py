@@ -25,10 +25,10 @@ class AWSReactor(Reactor):
         self._conn = None
         self._queue = None
 
-        self._state_backend = state_backend(region, state_domain_name)
-        self._suppress_backend = suppress_backend(region,
-                                                  suppress_cache_timeout,
-                                                  suppress_domain_name)
+        self.state_backend = state_backend(region, state_domain_name)
+        self.suppress_backend = suppress_backend(region,
+                                                 suppress_cache_timeout,
+                                                 suppress_domain_name)
 
     @property
     def conn(self):
