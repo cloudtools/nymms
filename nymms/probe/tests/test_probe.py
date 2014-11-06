@@ -103,7 +103,7 @@ class TestStateChange(unittest.TestCase):
     def setUpClass(cls):
         cls.state_backend = DummyStateBackend()
         cls.probe = DummyProbe()
-        cls.probe._state_backend = cls.state_backend
+        cls.probe.state_backend = cls.state_backend
 
     def test_state_change(self):
         # tests that our logic follows the nagios logic here
