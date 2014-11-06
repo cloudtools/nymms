@@ -4,6 +4,8 @@ import importlib
 import sys
 import collections
 
+from nymms.exceptions import InvalidTimeFormat
+
 logger = logging.getLogger(__name__)
 
 
@@ -68,3 +70,37 @@ def deep_update(orig, upd):
         else:
             orig[k] = upd[k]
     return orig
+
+
+def parse_time(time_string, reference_time=None):
+    """Parses a time in YYYYMMDDHHMMSS or +XXXX[smhd] and returns
+    epoch time
+
+    reference_time should be the epoch time used for calculating
+    the time when using +XXXX[smhd]
+
+    if time_string == 0, returns None"""
+    if time_string == '0':
+        return None
+
+    if time_string[0] == '+' or time_string[0] == '-':
+        if not reference_time:
+            reference_time = int(time.time())
+
+        last_char = time_string[len(time_string) - 1]
+        user_value = time_string[0:(len(time_string) - 1)]
+        if last_char == 's':
+            epoch = reference_time + int(user_value)
+        elif last_char == 'm':
+            epoch = reference_time + (int(user_value) * 60)
+        elif last_char == 'h':
+            epoch = reference_time + (int(user_value) * 60 * 60)
+        elif last_char == 'd':
+            epoch = reference_time + (int(user_value) * 60 * 60 * 24)
+        else:
+            raise InvalidTimeFormat(time_string)
+    else:
+        epoch = int(time.strftime("%s",
+                    time.strptime(time_string, "%Y%m%d%H%M%S")))
+
+    return epoch

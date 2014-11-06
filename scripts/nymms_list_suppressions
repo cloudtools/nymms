@@ -3,7 +3,7 @@
 """CLI tool to report on reactor suppression filters."""
 
 import time
-from nymms.utils import cli
+from nymms.utils import cli, parse_time
 
 
 parser = cli.NymmsCommandArgs(__doc__)
@@ -25,7 +25,7 @@ from nymms.config import config
 config.load_config(args.config)
 
 current_epoch = int(time.time())
-expire = cli.parse_time(args.time, current_epoch)
+expire = parse_time(args.time, current_epoch)
 expire_time = time.gmtime(expire)
 logger.debug("Searching for suppression filters active for %s",
              time.strftime("%Y-%m-%d %H:%M:%S", expire_time))

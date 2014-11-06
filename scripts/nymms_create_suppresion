@@ -3,7 +3,7 @@
 """CLI tool to create new reactor suppression filters"""
 
 from nymms.suppress.suppress import ReactorSuppress
-from nymms.utils import cli
+from nymms.utils import cli, parse_time
 import time
 import os
 import socket
@@ -42,7 +42,7 @@ from nymms.config import config
 config.load_config(args.config)
 
 current_epoch = int(time.time())
-expires = cli.parse_time(args.expires, current_epoch)
+expires = parse_time(args.expires, current_epoch)
 
 if expires <= current_epoch:
     logger.error("Expires must be in the future")

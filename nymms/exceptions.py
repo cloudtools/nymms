@@ -29,3 +29,13 @@ class InvalidConfig(NymmsException):
 
     def __str__(self):
         return "Invalid config file '%s': %s" % (self.path, self.message)
+
+
+class InvalidTimeFormat(NymmsException):
+    def __init__(self, time_string):
+        self.time_string = time_string
+        self.message = ("Invalid time format: %s. Missing s/m/h/d "
+                        "qualifier." % time_string)
+
+    def __str__(self):
+        return self.message
