@@ -100,7 +100,7 @@ class Result(NymmsDataType, StateMixin):
         self._cleaned['state_type_name'] = get_state_type_name(self.state_type)
 
     @classmethod
-    def _deserialize(cls, item, origin=None):
+    def _deserialize(cls, item):
         new_item = super(Result, cls)._deserialize(item)
         new_item = copy.deepcopy(item)
         del(new_item['state_name'])
@@ -137,7 +137,7 @@ class StateRecord(NymmsDataType, StateMixin):
                 return str(value)
 
     @classmethod
-    def _deserialize(cls, item, origin=None):
+    def _deserialize(cls, item):
         item_dict = {}
         for k, v in item.iteritems():
             item_dict[k] = cls.decode_value(v)
