@@ -3,7 +3,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 import uuid
-import time
 
 
 class SchedulerLock(object):
@@ -30,7 +29,7 @@ class SchedulerLock(object):
         """ Should be overridden and return True or False depending on whether
         it got the lock or not.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class NoOpLock(SchedulerLock):

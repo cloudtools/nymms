@@ -4,7 +4,6 @@ import os
 import sys
 import time
 
-import nymms
 from nymms.daemon import NymmsDaemon
 from nymms.config import yaml_config
 from nymms.utils import load_object_from_string, logutil
@@ -14,6 +13,8 @@ logger = logging.getLogger(__name__)
 
 
 class Reactor(NymmsDaemon):
+    state_backend = None
+
     def __init__(self):
         self._handlers = {}
         self._suppress_backend = None
@@ -38,9 +39,10 @@ class Reactor(NymmsDaemon):
         try:
             handler_cls = load_object_from_string(cls_string)
             return handler_cls(config)
-        except Exception as e:
+        except Exception:
             logutil.log_exception("Skipping handler %s due to "
-                "unhandled exception:", handler_name, logger)
+                                  "unhandled exception:" % handler_name,
+                                  logger)
             return None
 
     def _load_handlers(self, handler_config_path, **kwargs):
@@ -68,31 +70,32 @@ class Reactor(NymmsDaemon):
     def get_result(self, **kwargs):
         raise NotImplementedError
 
-    # TODO: This calls on _state_backend but setting up of the _state_backend
+    # TODO: This calls on state_backend but setting up of the _state_backend
     #       needs to be handled in the subclass.  Not sure how I should handle
     #       this, but I really like the idea of these being base class
     #       methods since in reality all reactors should have some sort of
     #       state backend, even if its a no-op
     def get_state(self, task_id):
-        return self._state_backend.get_state(task_id)
+        return self.state_backend.get_state(task_id)
 
     def save_state(self, task_id, result, previous):
-        return self._state_backend.save_state(task_id, result, previous)
+        return self.state_backend.save_state(task_id, result, previous)
 
     def is_suppressed(self, result):
         """Returns True if we should suppress the given result for event"""
         if not self._suppress_backend:
-            logger.debug("is_suppressed(): No suppress backend, so returning False")
+            logger.debug("is_suppressed(): No suppress backend, so returning "
+                         "False")
             return False
         suppression_filter = self._suppress_backend.is_suppressed(result.id)
         if suppression_filter:
             created_at = time.gmtime(suppression_filter.created_at)
             timestr = time.strftime("%Y-%m-%d %H:%M:%S UTC", created_at)
             logger.debug("Suppressed %s with '%s' (%s) created at %s",
-                result.id,
-                suppression_filter.regex,
-                suppression_filter.rowkey,
-                timestr)
+                         result.id,
+                         suppression_filter.regex,
+                         suppression_filter.rowkey,
+                         timestr)
         return suppression_filter
 
     def handle_result(self, result, **kwargs):

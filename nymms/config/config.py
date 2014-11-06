@@ -1,7 +1,6 @@
 import logging
 import copy
 import os
-import collections
 
 logger = logging.getLogger(__name__)
 
@@ -160,7 +159,7 @@ version = None
 
 
 def load_config(path, force=False):
-    global settings, version, DEFAULTS
+    global settings, version
     if settings and not force:
         return
     settings = copy.deepcopy(DEFAULTS)

@@ -14,6 +14,8 @@ TIMEOUT_OUTPUT = "Command timed out after %d seconds."
 
 
 class Probe(NymmsDaemon):
+    state_backend = None
+
     def get_private_context(self, private_context_file):
         if not private_context_file:
             return None

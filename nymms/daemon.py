@@ -8,6 +8,9 @@ class NymmsDaemon(object):
     def __init__(self):
         logger.debug("%s initialized.", self.__class__.__name__)
 
+    def run(self, *args, **kwargs):
+        raise NotImplementedError
+
     def main(self, *args, **kwargs):
         logger.debug("Launching %s version %s.", self.__class__.__name__,
                      nymms.__version__)

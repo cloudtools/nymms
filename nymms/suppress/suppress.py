@@ -20,8 +20,7 @@ class ReactorSuppress(object):
         self.created_at = int(item.get('created_at', time.time()))
 
     def dict(self):
-        return {
-                'active': self.active,
+        return {'active': self.active,
                 'comment': self.comment,
                 'created_at': self.created_at,
                 'expires': self.expires,
@@ -76,10 +75,10 @@ class SuppressFilterBackend(object):
     def add_suppression(self, suppress):
         raise NotImplementedError
 
-    def get_suppressions(self, **kwargs):
+    def get_suppressions(self, expire, active=True):
         raise NotImplementedError
 
-    def deactivate_suppression(self, **kwargs):
+    def deactivate_suppression(self, rowkey):
         raise NotImplementedError
 
     def deactivate_all_suppressions(self):
