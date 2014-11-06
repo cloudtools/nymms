@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-from nymms.utils import aws_helper, cli
+from nymms.utils import cli
 
 parser = cli.NymmsCommandArgs()
 parser.add_argument('--realm',
                     help="If specified this probe will only execute monitors "
                          "in the given realm.")
-        
+
 args = parser.parse_args()
 
 cli.setup_logging(args.verbose)
@@ -19,7 +19,6 @@ config.load_config(args.config)
 
 resource_version = load_resources(config.settings['resources'])
 region = config.settings['region']
-conn_mgr = aws_helper.ConnectionManager(region)
 
 tasks_queue = config.settings['tasks_queue']
 if args.realm:
@@ -33,10 +32,10 @@ retry_delay = config.settings['probe']['retry_delay']
 task_expiration = config.settings['task_expiration']
 private_context_file = config.settings['private_context_file']
 
-daemon = SQSProbe(conn_mgr, tasks_queue, results_topic, state_domain)
+daemon = SQSProbe(region, tasks_queue, results_topic, state_domain)
 daemon.main(monitor_timeout=monitor_timeout,
-           max_retries=max_retries,
-           retry_delay=retry_delay,
-           queue_wait_time=wait_timeout,
-           private_context_file=private_context_file,
-           task_expiration=task_expiration)
+            max_retries=max_retries,
+            retry_delay=retry_delay,
+            queue_wait_time=wait_timeout,
+            private_context_file=private_context_file,
+            task_expiration=task_expiration)

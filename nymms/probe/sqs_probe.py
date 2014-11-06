@@ -8,39 +8,47 @@ from boto.sqs.message import Message
 from nymms.tasks import Task
 from nymms.probe.Probe import Probe
 from nymms.state.sdb_state import SDBStateBackend
-from nymms.utils.aws_helper import SNSTopic
+from nymms.utils.aws_helper import SNSTopic, ConnectionManager
 
 
 class SQSProbe(Probe):
-    def __init__(self, conn_mgr, task_queue, results_topic, state_domain,
+    def __init__(self, region, task_queue, results_topic, state_domain,
                  state_backend=SDBStateBackend):
-        self._conn = conn_mgr
-        self._queue_name = task_queue
-        self._topic_name = results_topic
-        self._topic = None
+        self.region = region
+        self.queue_name = task_queue
+        self.topic_name = results_topic
+        self.state_backend = state_backend(region, state_domain)
+
+        self._conn = None
         self._queue = None
-        self._state_backend = state_backend(conn_mgr.sdb, state_domain)
+        self._topic = None
+
         super(SQSProbe, self).__init__()
 
-    def _setup_queue(self, **kwargs):
-        if self._queue:
-            return
-        logger.debug("setting up queue %s", self._queue_name)
-        self._queue = self._conn.sqs.create_queue(self._queue_name)
+    @property
+    def conn(self):
+        if not self._conn:
+            self._conn = ConnectionManager(self.region)
+        return self._conn
 
-    def _setup_topic(self, **kwargs):
-        if self._topic:
-            return
-        logger.debug("setting up topic %s", self._topic_name)
-        self._topic = SNSTopic(self._conn, self._topic_name)
+    @property
+    def queue(self):
+        if not self._queue:
+            self._queue = self.conn.sqs.create_queue(self.queue_name)
+        return self._queue
+
+    @property
+    def topic(self):
+        if not self._topic:
+            self._topic = SNSTopic(self.region, self.topic_name)
+        return self._topic
 
     def get_task(self, **kwargs):
-        self._setup_queue(**kwargs)
         wait_time = kwargs.get('queue_wait_time')
         timeout = kwargs.get('monitor_timeout') + 3
-        logger.debug("Getting task from queue %s.", self._queue_name)
-        task_item = self._queue.read(visibility_timeout=timeout,
-                                     wait_time_seconds=wait_time)
+        logger.debug("Getting task from queue %s.", self.queue_name)
+        task_item = self.queue.read(visibility_timeout=timeout,
+                                    wait_time_seconds=wait_time)
         task = None
         if task_item:
             task = Task.deserialize(json.loads(task_item.get_body()),
@@ -48,16 +56,14 @@ class SQSProbe(Probe):
         return task
 
     def resubmit_task(self, task, delay, **kwargs):
-        self._setup_queue(**kwargs)
         task.increment_attempt()
         logger.debug("Resubmitting task %s with %d second delay.", task.id,
                      delay)
         m = Message()
         m.set_body(json.dumps(task.serialize()))
-        return self._queue.write(m, delay_seconds=delay)
+        return self.queue.write(m, delay_seconds=delay)
 
     def submit_result(self, result, **kwargs):
-        self._setup_topic()
         logger.debug("%s - submitting '%s/%s' result", result.id,
                      result.state_name, result.state_type_name)
-        return self._topic.publish(json.dumps(result.serialize()))
+        return self.topic.publish(json.dumps(result.serialize()))

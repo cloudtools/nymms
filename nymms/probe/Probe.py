@@ -3,13 +3,11 @@ import time
 
 logger = logging.getLogger(__name__)
 
-import nymms
 from nymms import results
 from nymms.daemon import NymmsDaemon
 from nymms.resources import Monitor
 from nymms.utils import commands
 from nymms.config.yaml_config import load_config, EmptyConfig
-from nymms.exceptions import MissingCommandContext
 
 
 TIMEOUT_OUTPUT = "Command timed out after %d seconds."
@@ -21,7 +19,7 @@ class Probe(NymmsDaemon):
             return None
         try:
             return load_config(private_context_file)[1]
-        except (IOError, EmptyConfig) as e:
+        except (IOError, EmptyConfig):
             logger.exception("Unable to open private context file: %s",
                              private_context_file)
             return None
@@ -32,7 +30,7 @@ class Probe(NymmsDaemon):
     #       methods since in reality all reactors should have some sort of
     #       state backend, even if its a no-op
     def get_state(self, task_id):
-        return self._state_backend.get_state(task_id)
+        return self.state_backend.get_state(task_id)
 
     def get_task(self, **kwargs):
         raise NotImplementedError
@@ -104,10 +102,10 @@ class Probe(NymmsDaemon):
         # http://nagios.sourceforge.net/docs/3_0/statetypes.html
         if result.state == results.OK:
             if (previous_state and not previous_state.state == results.OK and
-                previous_state.state_type == results.SOFT):
+               previous_state.state_type == results.SOFT):
                     result.state_type = results.SOFT
         else:
-            logger.debug(log_prefix + "current_attempt: %d, max_retries: %d", 
+            logger.debug(log_prefix + "current_attempt: %d, max_retries: %d",
                          current_attempt, max_retries)
             if current_attempt <= max_retries:
                 # XXX Hate this logic - hope to find a cleaner way to handle

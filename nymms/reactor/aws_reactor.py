@@ -1,58 +1,57 @@
 import logging
 import json
-import time
 
 logger = logging.getLogger(__name__)
 
 from nymms import results
 from nymms.reactor.Reactor import Reactor
 from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
-from nymms.utils.aws_helper import SNSTopic
+from nymms.utils.aws_helper import SNSTopic, ConnectionManager
 from nymms.state.sdb_state import SDBStateBackend
 
 from boto.sqs.message import RawMessage
 
 
 class AWSReactor(Reactor):
-    def __init__(self, conn_mgr, topic_name, state_domain_name, queue_name,
-            suppress_domain_name, suppress_cache_timeout=60,
-            state_backend=SDBStateBackend,
-            suppress_backend=SDBSuppressFilterBackend):
+    def __init__(self, region, topic_name, state_domain_name, queue_name,
+                 suppress_domain_name, suppress_cache_timeout=60,
+                 state_backend=SDBStateBackend,
+                 suppress_backend=SDBSuppressFilterBackend):
         super(AWSReactor, self).__init__()
-        self._conn = conn_mgr
-        self._topic_name = topic_name
-        self._queue_name = queue_name
-        self._topic = None
+        self.region = region
+        self.topic_name = topic_name
+        self.queue_name = queue_name
+
+        self._conn = None
         self._queue = None
-        self._state_backend = state_backend(conn_mgr.sdb, state_domain_name)
-        self._suppress_backend = suppress_backend(conn_mgr.sdb,
-                suppress_cache_timeout, suppress_domain_name)
 
-    def _setup_queue(self):
-        if self._queue:
-            return
-        logger.debug("setting up queue %s", self._queue_name)
-        self._queue = self._conn.sqs.create_queue(self._queue_name)
-        self._queue.set_message_class(RawMessage)
+        self._state_backend = state_backend(region, state_domain_name)
+        self._suppress_backend = suppress_backend(region,
+                                                  suppress_cache_timeout,
+                                                  suppress_domain_name)
 
-    def _setup_topic(self):
-        if self._topic:
-            return
-        logger.debug("setting up topic %s", self._topic_name)
-        self._topic = SNSTopic(self._conn, self._topic_name)
-        logger.debug("subscribing queue %s to topic %s", self._queue_name,
-                     self._topic_name)
-        self._topic.subscribe_sqs_queue(self._queue)
+    @property
+    def conn(self):
+        if not self._conn:
+            self._conn = ConnectionManager(self.region)
+        return self._conn
+
+    @property
+    def queue(self):
+        if not self._queue:
+            self._queue = self.conn.sqs.create_queue(self.queue_name)
+            self._queue.set_message_class(RawMessage)
+            topic = SNSTopic(self.region, self.topic_name)
+            topic.subscribe_sqs_queue(self.queue)
+        return self._queue
 
     def get_result(self, **kwargs):
         wait_time = kwargs.get('wait_time', 0)
         visibility_timeout = kwargs.get('visibility_timeout', None)
-        self._setup_queue()
-        self._setup_topic()
 
-        logger.debug("Getting result from queue %s.", self._queue_name)
-        result = self._queue.read(visibility_timeout=visibility_timeout,
-                                  wait_time_seconds=wait_time)
+        logger.debug("Getting result from queue %s.", self.queue_name)
+        result = self.queue.read(visibility_timeout=visibility_timeout,
+                                 wait_time_seconds=wait_time)
         result_obj = None
         if result:
             result_message = json.loads(result.get_body())['Message']

@@ -2,15 +2,11 @@
 
 """CLI tool to create new reactor suppression filters"""
 
-import boto.sdb
 from nymms.suppress.suppress import ReactorSuppress
-from nymms.utils.aws_helper import ConnectionManager
 from nymms.utils import cli
 import time
 import os
-import logging
 import socket
-import sys
 
 
 def get_ipaddr():
@@ -27,15 +23,16 @@ userid = os.getlogin()
 
 parser = cli.NymmsCommandArgs(__doc__)
 parser.add_argument('-e', '--expires', dest='expires', default='+1h',
-        help='YYYYMMDDHHMMSS or +XXX[smhd] to expire in. default: %(default)s')
+                    help='YYYYMMDDHHMMSS or +XXX[smhd] to expire in. '
+                         'default: %(default)s')
 parser.add_argument('-f', '--filter', dest='filter', required=True,
-        help='Regex to filter events with')
+                    help='Regex to filter events with')
 parser.add_argument('-C', '--comment', dest='comment', required=True,
-        help='Comment to record with filter')
+                    help='Comment to record with filter')
 parser.add_argument('-i', '--ipaddr', dest='ipaddr', default=ipaddr,
-        help='Override IP address to record: %(default)s')
+                    help='Override IP address to record: %(default)s')
 parser.add_argument('-u', '--userid', dest='userid', default=userid,
-        help='Override userid to record: %(default)s')
+                    help='Override userid to record: %(default)s')
 
 args = parser.parse_args()
 logger = cli.setup_logging(args.verbose)
@@ -54,13 +51,14 @@ if expires <= current_epoch:
 current_epoch_time = time.gmtime(current_epoch)
 expires_time = time.gmtime(expires)
 logger.debug("Currently %s, will expire at %s\n",
-        time.strftime("%Y-%m-%d %H:%M:%S", current_epoch_time),
-        time.strftime("%Y-%m-%d %H:%M:%S", expires_time))
+             time.strftime("%Y-%m-%d %H:%M:%S", current_epoch_time),
+             time.strftime("%Y-%m-%d %H:%M:%S", expires_time))
 
-aws = ConnectionManager(region=config.settings['region'])
-suppress = SDBSuppressFilterBackend(aws.sdb,
-        config.settings['suppress']['cache_timeout'],
-        config.settings['suppress']['domain'])
+region = config.settings['region']
+cache_timeout = config.settings['suppress']['cache_timeout']
+domain = config.settings['suppress']['domain']
+
+suppress = SDBSuppressFilterBackend(region, cache_timeout, domain)
 
 suppress_obj = ReactorSuppress({
     'comment': args.comment,

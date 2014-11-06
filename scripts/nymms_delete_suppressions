@@ -2,19 +2,15 @@
 
 """CLI tool for marking reactor suppression as inactive"""
 
-import boto.sdb
-from nymms.utils.aws_helper import ConnectionManager
 from nymms.utils import cli
-import time
-import logging
-import sys
 
 
 parser = cli.NymmsCommandArgs(__doc__)
 parser.add_argument('-k', '--key', dest='rowkey',
-        help='rowkey of suppression filter to deactivate')
+                    help='rowkey of suppression filter to deactivate')
 parser.add_argument('--deactivate-all', dest='all_filters',
-        help='Deactivate all the suppression filters', action='store_true')
+                    help='Deactivate all the suppression filters',
+                    action='store_true')
 
 args = parser.parse_args()
 logger = cli.setup_logging(args.verbose)
@@ -23,10 +19,11 @@ from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
 from nymms.config import config
 config.load_config(args.config)
 
-aws = ConnectionManager(region=config.settings['region'])
-suppress = SDBSuppressFilterBackend(aws.sdb,
-        config.settings['suppress']['cache_timeout'],
-        config.settings['suppress']['domain'])
+region = config.settings['region']
+cache_timeout = config.settings['suppress']['cache_timeout']
+domain = config.settings['suppress']['domain']
+
+suppress = SDBSuppressFilterBackend(region, cache_timeout, domain)
 
 if args.all_filters:
     suppress.deactivate_all_suppressions()

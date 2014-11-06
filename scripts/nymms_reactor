@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from nymms.utils import aws_helper, cli
+from nymms.utils import cli
 
 parser = cli.NymmsCommandArgs()
 args = parser.parse_args()
@@ -13,7 +13,6 @@ from nymms.reactor.aws_reactor import AWSReactor
 config.load_config(args.config)
 
 region = config.settings['region']
-conn_mgr = aws_helper.ConnectionManager(region)
 
 results_topic = config.settings['results_topic']
 state_domain = config.settings['state_domain']
@@ -23,8 +22,7 @@ wait_time = config.settings['reactor']['queue_wait_time']
 visibility_timeout = config.settings['reactor']['visibility_timeout']
 suppress_domain = config.settings['suppress']['domain']
 suppress_cache_timeout = config.settings['suppress']['cache_timeout']
-daemon = AWSReactor(conn_mgr, results_topic, state_domain, queue_name,
-       suppress_domain, suppress_cache_timeout)
-daemon.main(handler_config_path,
-           wait_time=wait_time,
-           visibility_timeout=visibility_timeout)
+daemon = AWSReactor(region, results_topic, state_domain, queue_name,
+                    suppress_domain, suppress_cache_timeout)
+daemon.main(handler_config_path, wait_time=wait_time,
+            visibility_timeout=visibility_timeout)

@@ -1,5 +1,4 @@
 import logging
-import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -7,21 +6,29 @@ from boto.exception import SDBResponseError
 
 from nymms import results
 from nymms.exceptions import OutOfDateState
+from nymms.utils import aws_helper
 
 
 class SDBStateBackend(object):
-    def __init__(self, conn, domain_name):
-        self._conn = conn
-        self._domain_name = domain_name
+    def __init__(self, region, domain_name):
+        self.region = region
+        self.domain_name = domain_name
+
+        self._conn = None
         self._domain = None
         logger.debug("%s initialized.", self.__class__.__name__)
 
-    def _setup_domain(self):
-        if self._domain:
-            return
-        conn = self._conn
-        logger.debug("setting up state domain %s", self._domain_name)
-        self._domain = conn.create_domain(self._domain_name)
+    @property
+    def conn(self):
+        if not self._conn:
+            self._conn = aws_helper.ConnectionManager(self.region).sdb
+        return self._conn
+
+    @property
+    def domain(self):
+        if not self._domain:
+            self._domain = self.conn.create_domain(self.domain_name)
+        return self._domain
 
     def _build_new_state(self, task_id, result, previous):
         new_state = results.StateRecord(task_id,
@@ -39,7 +46,6 @@ class SDBStateBackend(object):
         return new_state
 
     def save_state(self, task_id, result, previous):
-        self._setup_domain()
         new_state = self._build_new_state(task_id, result, previous)
         expected_value = ['last_update', False]
         if previous:
@@ -54,9 +60,9 @@ class SDBStateBackend(object):
                 raise OutOfDateState(new_state, previous)
         logger.debug(task_id + " - saving state: %s", new_state.serialize())
         try:
-            self._domain.put_attributes(task_id, new_state.serialize(),
-                                        replace=True,
-                                        expected_value=expected_value)
+            self.domain.put_attributes(task_id, new_state.serialize(),
+                                       replace=True,
+                                       expected_value=expected_value)
         except SDBResponseError as e:
             if e.error_code == 'ConditionalCheckFailed':
                 logger.warning('last_update for %s was updated, skipping',
@@ -65,9 +71,8 @@ class SDBStateBackend(object):
             raise
 
     def get_state(self, task_id):
-        self._setup_domain()
         logger.debug("%s - getting state", task_id)
-        state_item = self._domain.get_item(task_id, consistent_read=True)
+        state_item = self.domain.get_item(task_id, consistent_read=True)
         state = None
         if state_item:
             try:

@@ -2,19 +2,20 @@
 
 """CLI tool to report on reactor suppression filters."""
 
-import boto.sdb
-from nymms.utils.aws_helper import ConnectionManager
 import time
 from nymms.utils import cli
 
 
 parser = cli.NymmsCommandArgs(__doc__)
-parser.add_argument('-t', '--time', dest='time',
-        help='YYYMMDDHHMMSS or -XXX[smhd] time', default='0')
-parser.add_argument('-f', '--format', dest='format',
-        help='Output format', choices=('csv', 'pretty'), default='pretty')
+parser.add_argument('-t', '--time', dest='time', default='0',
+                    help='YYYMMDDHHMMSS or -XXX[smhd] time')
+parser.add_argument('-f', '--format', dest='format', default='pretty',
+                    choices=('csv', 'pretty'),
+                    help='Output format. Choices: %(choices)s. Default: '
+                         '%(default)s')
 parser.add_argument('-a', '--all', dest='show_all', action='store_true',
-        help='Show all matching suppression filters, even inactive ones')
+                    help='Show all matching suppression filters, even '
+                         'inactive ones')
 
 args = parser.parse_args()
 logger = cli.setup_logging(args.verbose)
@@ -27,12 +28,13 @@ current_epoch = int(time.time())
 expire = cli.parse_time(args.time, current_epoch)
 expire_time = time.gmtime(expire)
 logger.debug("Searching for suppression filters active for %s",
-        time.strftime("%Y-%m-%d %H:%M:%S", expire_time))
+             time.strftime("%Y-%m-%d %H:%M:%S", expire_time))
 
-aws = ConnectionManager(region=config.settings['region'])
-suppress = SDBSuppressFilterBackend(aws.sdb,
-        config.settings['suppress']['cache_timeout'],
-        config.settings['suppress']['domain'])
+region = config.settings['region']
+cache_timeout = config.settings['suppress']['cache_timeout']
+domain = config.settings['suppress']['domain']
+
+suppress = SDBSuppressFilterBackend(region, cache_timeout, domain)
 
 filters = suppress.get_suppressions(expire, not args.show_all)
 if args.format == 'csv':
@@ -44,7 +46,7 @@ for item in filters:
 
     expires = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(item.expires))
     created_at = time.strftime("%Y-%m-%d %H:%M:%S",
-            time.gmtime(item.created_at))
+                               time.gmtime(item.created_at))
     if args.format == 'pretty':
         print "regex: '%s'\n\tcreated at: %s (%d)\t\texpires: %s (%d)" % (
             item.regex, created_at, item.created_at, expires, item.expires)
@@ -56,9 +58,10 @@ for item in filters:
             print "\trowkey: %s\t\tactive: False\n" % (item.rowkey)
         else:
             print "\trowkey: %s\t\tactive: deactivated (%s)\n" % (item.rowkey,
-                    item.active)
+                                                                  item.active)
 
     elif args.format == 'csv':
         print "%s,%d,%d,%s,%s,%s,%s,%s" % (item.regex, item.created_at,
-                item.expires, item.userid, item.ipaddr, item.comment,
-                item.rowkey, item.active)
+                                           item.expires, item.userid,
+                                           item.ipaddr, item.comment,
+                                           item.rowkey, item.active)
