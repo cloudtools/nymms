@@ -16,7 +16,7 @@ class Backend(object):
         raise NotImplementedError
 
     def load_nodes(self, reset=False):
-        nodes = self.load_nodes()
+        nodes = self._load_nodes()
         try:
             load_resource(nodes, Node, reset=reset)
         except DuplicateEntryError:
