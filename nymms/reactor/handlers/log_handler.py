@@ -27,6 +27,6 @@ class LogHandler(Handler):
         self._file_logger.addHandler(handler)
         self._file_logger.setLevel(logging.INFO)
 
-    def process(self, result, previous_state):
+    def _process(self, result, previous_state):
         self._setup_logger()
         self._file_logger.info(result.serialize())

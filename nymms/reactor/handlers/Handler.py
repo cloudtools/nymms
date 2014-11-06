@@ -54,20 +54,20 @@ class Handler(object):
                      results)
         return all(results.values())
 
-    def _process(self, result, previous_state, is_suppressed):
+    def process(self, result, previous_state, is_suppressed):
         """First checks to see if the given event should be filtered and
         then sees if it passes the suppressor (if enabled).  If pass, then
-        call the subclass's process() method"""
+        call the subclass's _process() method"""
         cname = self.__class__.__name__
         if self._filter(result, previous_state):
             if not self.suppression_enabled:
                 logger.debug("Handler %s filters returned true for %s",
                              cname, result.id)
-                return self.process(result, previous_state)
+                return self._process(result, previous_state)
             elif self.suppression_enabled and not is_suppressed(result):
                 logger.debug("Handler %s filters & suppressor returned true"
                              " for %s, reacting.", cname, result.id)
-                return self.process(result, previous_state)
+                return self._process(result, previous_state)
             else:
                 logger.debug("Handler %s suppressor returned false"
                              " for %s, skipping.", cname, result.id)
@@ -75,7 +75,7 @@ class Handler(object):
             logger.debug("Handler %s filters returned false for %s, skipping.",
                          cname, result.id)
 
-    def process(self, result, previous_state):
+    def _process(self, result, previous_state):
         """ Meant to be overridden by subclasses - should handle the actual
         process of reacting to a result.
         """

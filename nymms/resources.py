@@ -77,7 +77,7 @@ class NanoResource(object):
         self._context_cache = {context_key: context}
         return self._context_cache
 
-    def _build_context(self, context):
+    def build_context(self, context):
         context = copy.deepcopy(context)
         c = self._context()
         context.update(c)
@@ -154,15 +154,15 @@ class Node(NanoResource):
     def build_context(self, monitoring_group, monitor):
         context = {}
         for obj in (monitoring_group, self, monitor):
-            context = obj._build_context(context)
+            context = obj.build_context(context)
         return context
 
     @property
     def monitors(self):
         if self._tasks:
             return self._tasks
-        for group_name, group in self.monitoring_groups.iteritems():
-            for monitor_name, monitor in group.monitors.iteritems():
+        for group in self.monitoring_groups.itervalues():
+            for monitor in group.monitors.itervalues():
                 self._tasks.append(self.build_context(group, monitor))
         return self._tasks
 

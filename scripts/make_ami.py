@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import time
-import sys
 import urllib2
 import argparse
 
@@ -73,10 +72,9 @@ def generate_cloud_config():
 
     commands = ['pip install validictory']
 
-    cloud_config = {
-            'apt_sources': sources,
-            'packages': packages,
-            'runcmd': commands}
+    cloud_config = {'apt_sources': sources,
+                    'packages': packages,
+                    'runcmd': commands}
     return "#cloud-config\n" + yaml.dump(cloud_config)
 
 
@@ -156,7 +154,7 @@ if __name__ == '__main__':
     base_ami = conn.get_image(base_image_id)
     logger.debug("Launching instance with AMI %s.", base_image_id)
     reservation = base_ami.run(key_name=args.ssh_key,
-                               security_groups=[args.security_group,],
+                               security_groups=[args.security_group, ],
                                user_data=generate_cloud_config(),
                                instance_type=args.instance_type)
     instance = reservation.instances[0]

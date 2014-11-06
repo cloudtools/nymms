@@ -171,5 +171,4 @@ def load_config(path, force=False):
             validator(settings, SCHEMA)
         except ValueError as e:
             raise exceptions.InvalidConfig(path, e.message)
-    logger.debug("Config loaded from '%s' with version '%s'." % (path,
-                                                                 version))
+    logger.debug("Config loaded from '%s' with version '%s'.", path, version)

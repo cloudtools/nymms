@@ -49,5 +49,5 @@ class SESHandler(Handler):
             logger.debug("No valid recipients found, not sending email for "
                          "%s.", result.id)
 
-    def process(self, result, previous_state):
+    def _process(self, result, previous_state):
         self._send_email(result, previous_state)

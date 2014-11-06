@@ -104,7 +104,7 @@ class Reactor(NymmsDaemon):
             try:
                 # We do suppression AFTER filters, so we have to
                 # pass Reactor to the handler to do that for us
-                handler._process(result, previous_state, self.is_suppressed)
+                handler.process(result, previous_state, self.is_suppressed)
             except Exception:
                 logutil.log_exception("Unhandled %s handler "
                                       "exception:" % (handler_name,), logger)

@@ -78,7 +78,7 @@ class SDBStateBackend(object):
             try:
                 state = results.StateRecord.deserialize(state_item)
                 state.validate()
-            except:
+            except Exception:
                 logger.exception("Problem deserializing state:")
                 logger.error("State data: %s", str(state_item))
         else:

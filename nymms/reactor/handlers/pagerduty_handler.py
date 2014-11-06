@@ -60,5 +60,5 @@ class PagerDutyHandler(Handler):
                        incident_key=result.id,
                        details=result_data)
 
-    def process(self, result, previous_state):
+    def _process(self, result, previous_state):
         self._send_incident(result, previous_state)

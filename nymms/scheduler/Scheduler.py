@@ -22,7 +22,7 @@ class Scheduler(NymmsDaemon):
 
     def get_tasks(self):
         tasks = {}
-        self._node_backend._load_nodes()
+        self._node_backend.load_nodes()
         nodes = Node.registry
         for node_name, node in nodes.iteritems():
             tasks[node_name] = node.monitors

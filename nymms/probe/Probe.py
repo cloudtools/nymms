@@ -75,7 +75,7 @@ class Probe(NymmsDaemon):
             task_lifetime = now - task.created
             if task_lifetime > task_expiration:
                 logger.debug("Task %s is older than expiration limit %d. "
-                             "Skipping." % (task.id, task_expiration))
+                             "Skipping.", task.id, task_expiration)
                 return True
             return False
         return False
@@ -88,7 +88,7 @@ class Probe(NymmsDaemon):
         # Used to add the command context to the task
         monitor = Monitor.registry[task.context['monitor']['name']]
         command = monitor.command
-        task.context = command._build_context(task.context)
+        task.context = command.build_context(task.context)
         previous_state = self.get_state(task.id)
         # check if the timeout is defined on the task first, if not then
         # go with what was passed into handle_task via run
@@ -119,7 +119,7 @@ class Probe(NymmsDaemon):
                     delay = task.context.get('retry_delay',
                                              kwargs.get('retry_delay'))
                     delay = max(delay, 0)
-                    logger.debug('Resubmitting task with %ds delay.' % delay)
+                    logger.debug('Resubmitting task with %ds delay.', delay)
                     self.resubmit_task(task, delay, **kwargs)
             else:
                 logger.debug("Retry limit hit, not resubmitting.")

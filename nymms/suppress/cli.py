@@ -16,8 +16,9 @@ class SuppressCommandArgs(NymmsCommandArgs):
         self.reference_time = int(time.time())
         self.values = None
 
-    def parse_args(self):
-        self.values = super(SuppressCommandArgs, self).parse_args()
+    def parse_args(self, args=None, namespace=None):
+        self.values = super(SuppressCommandArgs, self).parse_args(args,
+                                                                  namespace)
         return self.values
 
     def load_config(self):
