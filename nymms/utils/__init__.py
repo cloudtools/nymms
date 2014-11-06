@@ -55,7 +55,7 @@ def load_object_from_string(fqcn):
     object_name = fqcn
     if '.' in fqcn:
         module_path, object_name = fqcn.rsplit('.', 1)
-        module = importlib.import_module(module_path)
+        importlib.import_module(module_path)
     return getattr(sys.modules[module_path], object_name)
 
 

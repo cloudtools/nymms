@@ -19,6 +19,6 @@ class Backend(object):
         nodes = self.load_nodes()
         try:
             load_resource(nodes, Node, reset=reset)
-        except DuplicateEntryError, e:
+        except DuplicateEntryError:
             # TODO: Need to figure out the story for reloading nodes, etc.
             logger.debug("Nodes already loaded and reset is False, skipping.")

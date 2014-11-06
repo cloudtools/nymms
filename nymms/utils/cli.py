@@ -41,11 +41,11 @@ def parse_time(time_string, reference_time=int(time.time())):
             epoch = reference_time + (int(user_value) * 60 * 60 * 24)
         else:
             sys.stderr.write("Invalid time format: %s.  " +
-                    "Missing s/m/h/d qualifier\n", time_string)
+                             "Missing s/m/h/d qualifier\n", time_string)
             exit(-1)
     else:
         epoch = int(time.strftime("%s",
-            time.strptime(time_string, "%Y%m%d%H%M%S")))
+                    time.strptime(time_string, "%Y%m%d%H%M%S")))
 
     return epoch
 

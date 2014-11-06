@@ -221,7 +221,7 @@ class Command(NanoResource):
         if private_context:
             local_context['__private'].update(private_context)
         for k, v in my_context.values()[0].iteritems():
-            if not k == 'name' and not k in local_context:
+            if not k == 'name' and k not in local_context:
                 local_context[k] = v
         t = Template(self.command_string)
         t.environment.undefined = StrictUndefined
@@ -229,7 +229,7 @@ class Command(NanoResource):
             out = t.render(local_context)
         except UndefinedError as e:
             raise MissingCommandContext(e.message)
-        return t.render(local_context)
+        return out
 
     def execute(self, context, timeout, private_context=None):
         cmd = self.format_command(context, private_context)

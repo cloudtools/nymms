@@ -3,6 +3,7 @@ import unittest
 from nymms import results
 from nymms.reactor import filters
 
+
 class TestFilters(unittest.TestCase):
     def setUp(self):
         self.result = results.Result('test:filter', state=results.OK,

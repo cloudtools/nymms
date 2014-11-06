@@ -3,7 +3,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 from nymms.reactor.handlers.Handler import Handler
-from nymms import results
 
 from jinja2 import Template
 from nymms.utils.templates import SimpleUndefined
@@ -48,8 +47,9 @@ class PagerDutyHandler(Handler):
 
     def _send_incident(self, result, previous_state):
         self._connect()
-        subject_template = self.config.get('subject_template',
-           MISSING_SUBJECT % (self.__class__.__name__))
+        subject_template = self.config.get(
+            'subject_template',
+            MISSING_SUBJECT % (self.__class__.__name__))
         description = Template(subject_template)
         description.environment.undefined = SimpleUndefined
         result_data = result.serialize()

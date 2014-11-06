@@ -148,12 +148,12 @@ class TestExecuteTask(unittest.TestCase):
                                  }
                              })
         cls.timeout_task = Task('test:timeout_monitor',
-                             context={
-                                 'monitor': {
-                                     'name': 'sleep_monitor',
-                                 },
-                                 'sleep_time': 2,
-                             })
+                                context={
+                                    'monitor': {
+                                        'name': 'sleep_monitor',
+                                    },
+                                    'sleep_time': 2,
+                                })
         cls.probe._private_context = {}
 
     def test_successful_execute_task(self):

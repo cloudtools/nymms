@@ -1,19 +1,16 @@
 import time
 import sys
-import re
-import argparse
 from nymms.utils.cli import NymmsCommandArgs
 import logger
-
 
 
 class SuppressCommandArgs(NymmsCommandArgs):
     def __init__(self, *args, **kwargs):
         super(SuppressCommandArgs, self).__init__(*args, **kwargs)
         self.add_argument('-r', '--region', dest='region',
-                help='Override config AWS region to connect to')
+                          help='Override config AWS region to connect to')
         self.add_argument('-d', '--domain', dest='domain',
-                help='Override config AWS SDB Domain to use')
+                          help='Override config AWS SDB Domain to use')
         self.region = None
         self.domain = None
         self.reference_time = int(time.time())
@@ -24,7 +21,7 @@ class SuppressCommandArgs(NymmsCommandArgs):
         return self.values
 
     def load_config(self):
-        # load nymms.config here to avoid the error: 
+        # load nymms.config here to avoid the error:
         # No handlers could be found for logger "nymms.config.config"
         from nymms.config import config
 
@@ -68,10 +65,10 @@ class SuppressCommandArgs(NymmsCommandArgs):
                 epoch = self.reference_time + (int(user_value) * 60 * 60 * 24)
             else:
                 sys.stderr.write("Invalid time format: %s.  " +
-                        "Missing s/m/h/d qualifier\n", expires)
+                                 "Missing s/m/h/d qualifier\n", expires)
                 exit(-1)
         else:
             epoch = int(time.strftime("%s",
-                time.strptime(expires, "%Y%m%d%H%M%S")))
+                                      time.strptime(expires, "%Y%m%d%H%M%S")))
 
         return epoch

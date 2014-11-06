@@ -2,7 +2,6 @@ import logging
 
 from nymms.reactor.handlers.Handler import Handler
 from nymms.utils.aws_helper import ConnectionManager
-from nymms import results
 
 from jinja2 import Template
 from nymms.utils.templates import SimpleUndefined

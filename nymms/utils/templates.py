@@ -14,7 +14,9 @@ class SimpleUndefined(Undefined):
 
     def __unicode__(self):
         return u'{{MISSING_CONTEXT}}'
+
     def __getattr__(self, attr):
         return u'{{MISSING_CONTEXT}}'
+
     def __getitem__(self, item):
         return u'{{MISSING_CONTEXT}}'

@@ -1,7 +1,6 @@
 import logging
 import time
 
-import nymms
 from nymms.daemon import NymmsDaemon
 from nymms.resources import Node
 from nymms.tasks import Task
@@ -68,4 +67,3 @@ class Scheduler(NymmsDaemon):
                     del(tasks[node])
                     continue
                 self.submit_task(task, **kwargs)
-

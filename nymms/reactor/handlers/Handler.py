@@ -47,11 +47,11 @@ class Handler(object):
                 results[f.__name__] = f(result, previous_state)
             except Exception as e:
                 logger.exception("Filter %s on Handler %s had an unhandled "
-                        "exception. Ignoring: %s",
-                        f.__name__, self.__class__.__name__, e)
+                                 "exception. Ignoring: %s",
+                                 f.__name__, self.__class__.__name__, e)
                 continue
         logger.debug("Handler %s filter results: %s", self.__class__.__name__,
-                    results)
+                     results)
         return all(results.values())
 
     def _process(self, result, previous_state, is_suppressed):
@@ -62,18 +62,18 @@ class Handler(object):
         if self._filter(result, previous_state):
             if not self.suppression_enabled:
                 logger.debug("Handler %s filters returned true for %s",
-                        cname, result.id)
+                             cname, result.id)
                 return self.process(result, previous_state)
             elif self.suppression_enabled and not is_suppressed(result):
                 logger.debug("Handler %s filters & suppressor returned true"
-                        " for %s, reacting.", cname, result.id)
+                             " for %s, reacting.", cname, result.id)
                 return self.process(result, previous_state)
             else:
                 logger.debug("Handler %s suppressor returned false"
-                        " for %s, skipping.", cname, result.id)
+                             " for %s, skipping.", cname, result.id)
         else:
             logger.debug("Handler %s filters returned false for %s, skipping.",
-                    cname, result.id)
+                         cname, result.id)
 
     def process(self, result, previous_state):
         """ Meant to be overridden by subclasses - should handle the actual

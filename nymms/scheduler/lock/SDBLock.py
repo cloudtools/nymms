@@ -30,7 +30,7 @@ class SDBLock(SchedulerLock):
         self.setup_domain()
         now = int(time.time())
         existing_lock = self.domain.get_item(self.lock_name,
-                                              consistent_read=True)
+                                             consistent_read=True)
         lock_body = {'expiry': now + self.duration,
                      'timestamp': now,
                      'owner': self.id}
@@ -50,8 +50,8 @@ class SDBLock(SchedulerLock):
 
         try:
             self.domain.put_attributes(self.lock_name, lock_body,
-                                        replace=bool(existing_lock),
-                                        expected_value=expected_value)
+                                       replace=bool(existing_lock),
+                                       expected_value=expected_value)
             self.lock = lock_body
             logger.debug("Acquired lock %s:%s", self.domain_name,
                          self.lock_name)

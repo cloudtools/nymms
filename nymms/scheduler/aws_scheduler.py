@@ -1,12 +1,8 @@
 import logging
-import time
 import json
 
 from boto.sqs.message import Message
 
-from nymms import resources
-from nymms.config import config
-from nymms.tasks import Task
 from nymms.scheduler.Scheduler import Scheduler
 
 logger = logging.getLogger(__name__)
