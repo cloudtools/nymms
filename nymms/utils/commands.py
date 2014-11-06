@@ -39,8 +39,8 @@ def execute(command_string, timeout=None):
     """
     def handle_sigalrm(signum, frame):
         if signum == signal.SIGALRM:
-            logger.debug("Command '%s' timed out after %d seconds." % (
-                command_string, timeout))
+            logger.debug("Command '%s' timed out after %d seconds.",
+                         command_string, timeout)
             raise CommandTimeout(command_string, timeout)
     signal.signal(signal.SIGALRM, handle_sigalrm)
     log_header = "Executing command:"
@@ -50,7 +50,7 @@ def execute(command_string, timeout=None):
         signal.alarm(timeout)
     # Execute the command
     logger.debug(log_header)
-    logger.debug("    %s" % (command_string))
+    logger.debug("    %s", command_string)
     command_object = subprocess.Popen(command_string, shell=True,
                                       stdout=subprocess.PIPE,
                                       stderr=subprocess.STDOUT)
@@ -62,10 +62,10 @@ def execute(command_string, timeout=None):
         raise
     if not command_object.returncode == 0:
         signal.alarm(0)
-        logger.debug("Command '%s' failed with return code %d:" % (
-            command_string, command_object.returncode))
+        logger.debug("Command '%s' failed with return code %d:",
+                     command_string, command_object.returncode)
         for line in output[0].split('\n'):
-            logger.debug("    output: %s" % (line))
+            logger.debug("    output: %s", line)
         raise CommandFailure(command_string, command_object.returncode,
                              output[0])
     signal.alarm(0)

@@ -58,16 +58,16 @@ class NanoResource(object):
         self.register()
 
     def register(self):
-        logger.debug("Registering %s resource '%s' with the '%s' registry." % (
-            self.__class__.__name__, self.name, self.__class__.__name__))
+        logger.debug(
+            "Registering %s resource '%s' with the '%s' registry.",
+            self.__class__.__name__, self.name, self.__class__.__name__)
         self.registry[self.name] = self
 
     def _context(self, force=False):
         if self._context_cache and not force:
-            logger.debug("Returning context cache for %s resource." % (
-                self.name))
+            logger.debug("Returning context cache for %s resource.", self.name)
             return self._context_cache
-        logger.debug("Generating context cache for %s resource." % (self.name))
+        logger.debug("Generating context cache for %s resource.",  self.name)
         context_key = self.__class__.__name__.lower()
         context = {}
         for attr in self.context_attributes:
@@ -109,10 +109,9 @@ class MonitoringGroup(NanoResource):
             try:
                 node = Node.registry[node]
             except KeyError:
-                logger.error("Unable to find Node '%s' in registry." % (
-                    node))
-        logger.debug("Adding node '%s' to monitoring group '%s'." % (node.name,
-                     self.name))
+                logger.error("Unable to find Node '%s' in registry.", node)
+        logger.debug("Adding node '%s' to monitoring group '%s'.", node.name,
+                     self.name)
         self.nodes[node.name] = node
         node.monitoring_groups[self.name] = self
 
@@ -121,10 +120,10 @@ class MonitoringGroup(NanoResource):
             try:
                 monitor = Monitor.registry[monitor]
             except KeyError:
-                logger.error("Unable to find Monitor '%s' in registry." % (
-                    monitor))
-        logger.debug("Adding monitor '%s' to monitoring group '%s'." % (
-            monitor.name, self.name))
+                logger.error("Unable to find Monitor '%s' in registry.",
+                             monitor)
+        logger.debug("Adding monitor '%s' to monitoring group '%s'.",
+                     monitor.name, self.name)
         self.monitors[monitor.name] = monitor
         monitor.monitoring_groups[self.name] = self
 
@@ -147,7 +146,7 @@ class Node(NanoResource):
                         group = MonitoringGroup.registry[group]
                     except KeyError:
                         logger.error("Unable to find MonitoringGroup '%s' "
-                                     "in registry, skipping." % (group))
+                                     "in registry, skipping.", group)
                 group.add_node(self)
 
         super(Node, self).__init__(name, **kwargs)
@@ -179,8 +178,8 @@ class Monitor(NanoResource):
             try:
                 command = Command.registry[command]
             except KeyError:
-                logger.error("Unable to find Command '%s' in registry." % (
-                    command))
+                logger.error("Unable to find Command '%s' in registry.",
+                             command)
                 raise
 
         self.command = command
@@ -192,7 +191,7 @@ class Monitor(NanoResource):
                         group = MonitoringGroup.registry[group]
                     except KeyError:
                         logger.error("Unable to find MonitoringGroup '%s' in "
-                                     "registry." % (group))
+                                     "registry.", group)
                         raise
                 group.add_monitor(self)
 
@@ -242,8 +241,8 @@ def load_resource(resources, resource_class, reset=False):
     The resources are loaded into the given resource registry.
     """
     if reset:
-        logger.debug("Clearing old %s entries from registry." % (
-            resource_class.__name__))
+        logger.debug("Clearing old %s entries from registry.",
+                     resource_class.__name__)
         resource_class.registry.clear()
 
     for name, kwargs in resources.items():
@@ -262,7 +261,7 @@ def load_resources(resource_file, reset=False):
                   ('monitoring_groups', MonitoringGroup),
                   ('monitors', Monitor)]
 
-    logger.info("Loading local resources from %s." % (resource_file))
+    logger.info("Loading local resources from %s.", resource_file)
     version, resources = yaml_config.load_config(resource_file)
 
     for resource_type, resource_class in LOAD_ORDER:
@@ -276,7 +275,7 @@ def load_nodes(node_file, reset=False):
 
     Nodes are stored in the Node registry.
     """
-    logger.info("Loading nodes from %s." % (node_file))
+    logger.info("Loading nodes from %s.", node_file)
     version, nodes = yaml_config.load_config(node_file)
 
     items = nodes['nodes']
