@@ -5,7 +5,7 @@
 import os
 import socket
 
-from nymms.suppress.suppress import Suppression
+from nymms.schemas import Suppression
 from nymms.utils import cli, parse_time
 from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
 from nymms.config import config
