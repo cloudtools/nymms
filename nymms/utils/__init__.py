@@ -4,7 +4,7 @@ import importlib
 import sys
 import collections
 
-from nymms.exceptions import InvalidTimeFormat
+import arrow
 
 logger = logging.getLogger(__name__)
 
@@ -73,34 +73,31 @@ def deep_update(orig, upd):
 
 
 def parse_time(time_string, reference_time=None):
-    """Parses a time in YYYYMMDDHHMMSS or +XXXX[smhd] and returns
-    epoch time
+    """ Parses timestamps and returns an arrow time object.
 
-    reference_time should be the epoch time used for calculating
-    the time when using +XXXX[smhd]
+    Takes a time_string in either ISO-8601 format, a unix timestamp,
+    or a time offset in the form of [+-]XXXX[smhd] and returns an arrow time
+    object with at that time.
 
-    if time_string == 0, returns None"""
-    if time_string == '0':
-        return None
-
-    if time_string[0] == '+' or time_string[0] == '-':
-        if not reference_time:
-            reference_time = int(time.time())
-
-        last_char = time_string[len(time_string) - 1]
-        user_value = time_string[0:(len(time_string) - 1)]
-        if last_char == 's':
-            epoch = reference_time + int(user_value)
-        elif last_char == 'm':
-            epoch = reference_time + (int(user_value) * 60)
-        elif last_char == 'h':
-            epoch = reference_time + (int(user_value) * 60 * 60)
-        elif last_char == 'd':
-            epoch = reference_time + (int(user_value) * 60 * 60 * 24)
-        else:
-            raise InvalidTimeFormat(time_string)
+    Can take an optional reference_time arrow object, which will only be
+    used in the case that an offset was given, and will be used in place of
+    now for offsets.
+    """
+    suffix_map = {'s': 'seconds',
+                  'm': 'minutes',
+                  'h': 'hours',
+                  'd': 'days'}
+    if time_string[0] in ('+', '-'):
+        unit = 's'
+        offset = time_string
+        if time_string[-1] in ('s', 'm', 'h', 'd'):
+            unit = time_string[-1]
+            offset = offset[:-1]
+        result_time = arrow.get(reference_time)
+        replace_args = {suffix_map[unit]: int(offset)}
+        result_time = result_time.replace(**replace_args)
+    elif '-' in time_string:
+        result_time = arrow.get(time_string)
     else:
-        epoch = int(time.strftime("%s",
-                    time.strptime(time_string, "%Y%m%d%H%M%S")))
-
-    return epoch
+        raise ValueError(time_string)
+    return result_time

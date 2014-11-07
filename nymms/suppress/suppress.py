@@ -3,32 +3,54 @@ import re
 import logging
 import uuid
 
+from schematics.models import Model
+from schematics.types import (StringType, IPv4Type, UUIDType, BaseType)
+import arrow
+
 logger = logging.getLogger(__name__)
 
 
-class ReactorSuppress(object):
-    """Record of the suppression to store in SDB/etc"""
-    def __init__(self, item):
-        self.comment = str(item['comment'])
-        self.expires = int(item['expires'])
-        self.ipaddr = str(item['ipaddr'])
-        self.regex = str(item['regex'])
-        self.re = re.compile(self.regex)
-        self.userid = str(item['userid'])
-        self.rowkey = str(item.get('rowkey', uuid.uuid4()))
-        self.active = str(item.get('active', True))
-        self.created_at = int(item.get('created_at', time.time()))
+class TimestampType(BaseType):
+    def to_native(self, value, context=None):
+        if isinstance(value, arrow.arrow.Arrow):
+            return value
+        return arrow.get(value)
 
-    def dict(self):
-        return {'active': self.active,
-                'comment': self.comment,
-                'created_at': self.created_at,
-                'expires': self.expires,
-                'ipaddr': self.ipaddr,
-                'regex': self.regex,
-                'userid': self.userid,
-                'rowkey': self.rowkey
-                }
+    def to_primitive(self, value, context):
+        return value.timestamp
+
+
+class Suppression(Model):
+    rowkey = UUIDType(default=uuid.uuid4)
+    regex = StringType(required=True)
+    created = TimestampType(default=time.time)
+    disabled = TimestampType(required=False, serialize_when_none=False)
+    expires = TimestampType(required=True)
+    ipaddr = IPv4Type(required=True)
+    userid = StringType(required=True)
+    comment = StringType(required=True)
+
+    @property
+    def active(self):
+        if self.disabled or self.expires < arrow.get():
+            return False
+        else:
+            return True
+
+    @property
+    def state(self):
+        if self.disabled:
+            return "disabled (%s, %s)" % (self.disabled,
+                                          self.disabled.humanize())
+        elif self.expires < arrow.get():
+            return "expired (%s, %s)" % (self.expires,
+                                         self.expires.humanize())
+        else:
+            return "active"
+
+    @property
+    def re(self):
+        return re.compile(self.regex)
 
 
 class SuppressFilterBackend(object):

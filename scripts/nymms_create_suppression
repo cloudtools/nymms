@@ -2,11 +2,15 @@
 
 """CLI tool to create new reactor suppression filters"""
 
-from nymms.suppress.suppress import ReactorSuppress
-from nymms.utils import cli, parse_time
-import time
 import os
 import socket
+
+from nymms.suppress.suppress import Suppression
+from nymms.utils import cli, parse_time
+from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
+from nymms.config import config
+
+import arrow
 
 
 def get_ipaddr():
@@ -23,7 +27,7 @@ userid = os.getlogin()
 
 parser = cli.NymmsCommandArgs(__doc__)
 parser.add_argument('-e', '--expires', dest='expires', default='+1h',
-                    help='YYYYMMDDHHMMSS or +XXX[smhd] to expire in. '
+                    help='ISO-8601 or +XXX[smhd] to expire in. '
                          'default: %(default)s')
 parser.add_argument('-f', '--filter', dest='filter', required=True,
                     help='Regex to filter events with')
@@ -37,22 +41,16 @@ parser.add_argument('-u', '--userid', dest='userid', default=userid,
 args = parser.parse_args()
 logger = cli.setup_logging(args.verbose)
 
-from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
-from nymms.config import config
 config.load_config(args.config)
 
-current_epoch = int(time.time())
-expires = parse_time(args.expires, current_epoch)
+now = arrow.get()
+expires = parse_time(args.expires)
 
-if expires <= current_epoch:
+if expires <= now:
     logger.error("Expires must be in the future")
-    exit(-1)
+    exit(1)
 
-current_epoch_time = time.gmtime(current_epoch)
-expires_time = time.gmtime(expires)
-logger.debug("Currently %s, will expire at %s\n",
-             time.strftime("%Y-%m-%d %H:%M:%S", current_epoch_time),
-             time.strftime("%Y-%m-%d %H:%M:%S", expires_time))
+logger.debug("Currently %s, will expire at %s.", now, expires)
 
 region = config.settings['region']
 cache_timeout = config.settings['suppress']['cache_timeout']
@@ -60,10 +58,11 @@ domain = config.settings['suppress']['domain']
 
 suppress = SDBSuppressFilterBackend(region, cache_timeout, domain)
 
-suppress_obj = ReactorSuppress({
+suppress_obj = Suppression({
     'comment': args.comment,
     'expires': expires,
     'ipaddr': args.ipaddr,
     'regex': args.filter,
     'userid': args.userid})
 suppress.add_suppression(suppress_obj)
+print "Suppression added: %s" % suppress_obj.rowkey

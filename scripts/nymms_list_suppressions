@@ -2,13 +2,18 @@
 
 """CLI tool to report on reactor suppression filters."""
 
-import time
-from nymms.utils import cli, parse_time
+import csv
+import sys
+from textwrap import TextWrapper
+
+from nymms.utils import cli
+from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
+from nymms.config import config
+
+import arrow
 
 
 parser = cli.NymmsCommandArgs(__doc__)
-parser.add_argument('-t', '--time', dest='time', default='0',
-                    help='YYYMMDDHHMMSS or -XXX[smhd] time')
 parser.add_argument('-f', '--format', dest='format', default='pretty',
                     choices=('csv', 'pretty'),
                     help='Output format. Choices: %(choices)s. Default: '
@@ -20,15 +25,9 @@ parser.add_argument('-a', '--all', dest='show_all', action='store_true',
 args = parser.parse_args()
 logger = cli.setup_logging(args.verbose)
 
-from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
-from nymms.config import config
 config.load_config(args.config)
 
-current_epoch = int(time.time())
-expire = parse_time(args.time, current_epoch)
-expire_time = time.gmtime(expire)
-logger.debug("Searching for suppression filters active for %s",
-             time.strftime("%Y-%m-%d %H:%M:%S", expire_time))
+now = arrow.get()
 
 region = config.settings['region']
 cache_timeout = config.settings['suppress']['cache_timeout']
@@ -36,32 +35,33 @@ domain = config.settings['suppress']['domain']
 
 suppress = SDBSuppressFilterBackend(region, cache_timeout, domain)
 
-filters = suppress.get_suppressions(expire, not args.show_all)
+filters = suppress.get_suppressions(None, not args.show_all)
 if args.format == 'csv':
-    print "regex,created_at,expires,userid,ipaddr,comment,rowkey,active"
+    print "regex,created,expires,userid,ipaddr,comment,rowkey,active"
 
 for item in filters:
-    if item.expires < current_epoch and not args.show_all:
+
+    if item.expires < now and not args.show_all:
         continue
 
-    expires = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(item.expires))
-    created_at = time.strftime("%Y-%m-%d %H:%M:%S",
-                               time.gmtime(item.created_at))
     if args.format == 'pretty':
-        print "regex: '%s'\n\tcreated at: %s (%d)\t\texpires: %s (%d)" % (
-            item.regex, created_at, item.created_at, expires, item.expires)
-        print "\tcreated by: %s\tipaddr: %s\n\tcomment: %s" % (
-            item.userid, item.ipaddr, item.comment)
-        if (item.active == 'True') and int(item.expires) >= current_epoch:
-            print "\trowkey: %s\t\tactive: %s\n" % (item.rowkey, item.active)
-        elif (item.active == 'True'):
-            print "\trowkey: %s\t\tactive: False\n" % (item.rowkey)
-        else:
-            print "\trowkey: %s\t\tactive: deactivated (%s)\n" % (item.rowkey,
-                                                                  item.active)
+        comment_wrapper = TextWrapper(initial_indent='    comment: ',
+                                      subsequent_indent='             ')
+        print "regex: '%s'" % item.regex
+        print "    rowkey: %s" % item.rowkey
+        print "    created: %s (%d)" % (item.created,
+                                        item.created.timestamp)
+        print "             %s" % (item.created.humanize())
+        print "    expires: %s (%d)" % (item.expires,
+                                        item.expires.timestamp)
+        print "             %s" % (item.expires.humanize())
+        print "    author: %s@%s" % (item.userid, item.ipaddr)
+        print "    state: %s" % item.state
+        print '\n'.join(comment_wrapper.wrap(item.comment))
+        print
 
     elif args.format == 'csv':
-        print "%s,%d,%d,%s,%s,%s,%s,%s" % (item.regex, item.created_at,
-                                           item.expires, item.userid,
-                                           item.ipaddr, item.comment,
-                                           item.rowkey, item.active)
+        writer = csv.writer(sys.stdout)
+        writer.writerow([item.regex, item.created, item.expires,
+                        item.userid, item.ipaddr, item.comment, item.rowkey,
+                        item.active])
