@@ -3,6 +3,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from nymms import results
+from nymms.schemas import types
 
 
 def always_true(result, previous_state):
@@ -27,15 +28,15 @@ def changed_state(result, previous_state):
     if not previous_state:
         logger.debug("No previous state found.")
         return True
-    if not previous_state.state == result.state:
+    if not previous_state.state.code == result.state:
         logger.debug("Previous state (%s) does not match current "
-                     "state (%s).", previous_state.state_name,
+                     "state (%s).", previous_state.state.name,
                      result.state_name)
         return True
-    if not previous_state.state_type == result.state_type:
+    if not previous_state.state_type.code == result.state_type:
         logger.debug("Previous state_type (%s) does not match current "
                      "state_type (%s).",
-                     previous_state.state_type_name,
+                     previous_state.state.name,
                      result.state_type_name)
         return True
     return False
@@ -78,8 +79,9 @@ def active_command(result, previous_state):
 
 
 def not_soft_recovery(result, previous_state):
-    if previous_state and previous_state.state_type == results.SOFT and \
-            result.state == results.OK:
+    if (previous_state and
+       previous_state.state_type.code == types.STATE_TYPE_SOFT
+       and result.state == results.OK):
         return False
     return True
 

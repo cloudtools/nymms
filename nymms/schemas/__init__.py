@@ -5,7 +5,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from nymms.schemas.types import TimestampType
+from nymms.schemas.types import TimestampType, StateType, StateTypeType
 
 from schematics.models import Model
 from schematics.types import StringType, IPv4Type, UUIDType, IntType
@@ -18,7 +18,7 @@ class Suppression(Model):
     rowkey = UUIDType(default=uuid.uuid4)
     regex = StringType(required=True)
     created = TimestampType(default=time.time)
-    disabled = TimestampType(required=False, serialize_when_none=False)
+    disabled = TimestampType(serialize_when_none=False)
     expires = TimestampType(required=True)
     ipaddr = IPv4Type(required=True)
     userid = StringType(required=True)
@@ -67,3 +67,11 @@ class Suppression(Model):
         except Exception:
             logger.exception("Unable to migrate suppression to v2: %s", item)
         return new_suppression
+
+
+class StateRecord(Model):
+    id = StringType(required=True)
+    last_update = TimestampType(default=time.time)
+    last_state_change = TimestampType(default=time.time)
+    state = StateType(required=True)
+    state_type = StateTypeType(required=True)

@@ -106,39 +106,3 @@ class Result(NymmsDataType, StateMixin):
         del(new_item['state_name'])
         del(new_item['state_type_name'])
         return new_item
-
-
-class StateRecord(NymmsDataType, StateMixin):
-    required_fields = ['state', 'state_type']
-
-    def __init__(self, object_id, last_update=None, last_state_change=None,
-                 state=None, state_type=None, origin=None, *args, **kwargs):
-        super(StateRecord, self).__init__(object_id=object_id, origin=origin)
-        self.last_update = last_update
-        self.last_state_change = last_state_change
-        self.state = state
-        self.state_type = state_type
-        self._cleaned = {}
-
-    def validate_last_update(self):
-        self.last_update = int(self.last_update or time.time())
-
-    def validate_last_state_change(self):
-        self.last_state_change = int(self.last_state_change or time.time())
-
-    @classmethod
-    def decode_value(cls, value):
-        try:
-            return int(value)
-        except ValueError:
-            try:
-                return float(value)
-            except ValueError:
-                return str(value)
-
-    @classmethod
-    def _deserialize(cls, item):
-        item_dict = {}
-        for k, v in item.iteritems():
-            item_dict[k] = cls.decode_value(v)
-        return item_dict

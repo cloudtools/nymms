@@ -103,8 +103,9 @@ class Probe(NymmsDaemon):
         # Trying to emulate this:
         # http://nagios.sourceforge.net/docs/3_0/statetypes.html
         if result.state == results.OK:
-            if (previous_state and not previous_state.state == results.OK and
-               previous_state.state_type == results.SOFT):
+            if (previous_state and not
+               previous_state.state.code == results.OK and
+               previous_state.state_type.code == results.SOFT):
                     result.state_type = results.SOFT
         else:
             logger.debug(log_prefix + "current_attempt: %d, max_retries: %d",
@@ -113,8 +114,8 @@ class Probe(NymmsDaemon):
                 # XXX Hate this logic - hope to find a cleaner way to handle
                 #     it someday.
                 if (not previous_state or
-                        previous_state.state_type == results.SOFT or
-                        previous_state.state == results.OK):
+                        previous_state.state_type.code == results.SOFT or
+                        previous_state.state.code == results.OK):
                     result.state_type = results.SOFT
                     delay = task.context.get('retry_delay',
                                              kwargs.get('retry_delay'))

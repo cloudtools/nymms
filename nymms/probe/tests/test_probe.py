@@ -8,6 +8,7 @@ os.environ['PATH'] += ":/usr/local/sbin"
 from nymms.probe.Probe import Probe, TIMEOUT_OUTPUT
 from nymms import results, resources
 from nymms.tasks import Task
+from nymms.state.State import StateBackend
 
 result_codes = [
     results.CRITICAL,
@@ -32,7 +33,7 @@ fail_monitor = resources.Monitor('fail_monitor', command=fail_command)
 sleep_monitor = resources.Monitor('sleep_monitor', command=sleep_command)
 
 
-class DummyStateBackend(object):
+class DummyStateBackend(StateBackend):
     def __init__(self):
         self.states = [
             None,
@@ -64,8 +65,7 @@ class DummyStateBackend(object):
         state = None
         if state_item:
             state_item['id'] = task_id
-            state = results.StateRecord.deserialize(state_item)
-            state.validate()
+            state = self.deserialize_state(state_item)
         return state
 
 

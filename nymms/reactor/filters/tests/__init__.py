@@ -1,57 +1,61 @@
 import unittest
 
-from nymms import results
+from nymms.results import Result
+from nymms.schemas import StateRecord, types
 from nymms.reactor import filters
 
 
 class TestFilters(unittest.TestCase):
     def setUp(self):
-        self.result = results.Result('test:filter', state=results.OK,
-                                     state_type=results.HARD)
+        self.result = Result('test:filter',
+                             state=types.STATE_OK.code,
+                             state_type=types.STATE_TYPE_HARD.code)
         self.result.validate()
-        self.record = results.StateRecord('test:filter', state=results.OK,
-                                          state_type=results.HARD)
+        self.record = StateRecord({
+            'id': 'test:filter',
+            'state': types.STATE_OK,
+            'state_type': types.STATE_TYPE_HARD})
         self.record.validate()
 
     def test_hard_state(self):
         self.assertTrue(filters.hard_state(self.result, self.record))
 
-        self.result.state_type = results.SOFT
+        self.result.state_type = types.STATE_TYPE_SOFT.code
         self.result.validate()
         self.assertFalse(filters.hard_state(self.result, self.record))
 
     def test_ok_state(self):
         self.assertTrue(filters.ok_state(self.result, self.record))
 
-        self.result.state = results.WARNING
+        self.result.state = types.STATE_WARNING.code
         self.result.validate()
         self.assertFalse(filters.ok_state(self.result, self.record))
 
     def test_not_ok_state(self):
         self.assertFalse(filters.not_ok_state(self.result, self.record))
 
-        self.result.state = results.WARNING
+        self.result.state = types.STATE_WARNING.code
         self.result.validate()
         self.assertTrue(filters.not_ok_state(self.result, self.record))
 
     def test_warning_state(self):
         self.assertFalse(filters.warning_state(self.result, self.record))
 
-        self.result.state = results.WARNING
+        self.result.state = types.STATE_WARNING.code
         self.result.validate()
         self.assertTrue(filters.warning_state(self.result, self.record))
 
     def test_critical_state(self):
         self.assertFalse(filters.critical_state(self.result, self.record))
 
-        self.result.state = results.CRITICAL
+        self.result.state = types.STATE_CRITICAL.code
         self.result.validate()
         self.assertTrue(filters.critical_state(self.result, self.record))
 
     def test_unknown_state(self):
         self.assertFalse(filters.unknown_state(self.result, self.record))
 
-        self.result.state = results.UNKNOWN
+        self.result.state = types.STATE_UNKNOWN.code
         self.result.validate()
         self.assertTrue(filters.unknown_state(self.result, self.record))
 
@@ -61,11 +65,11 @@ class TestFilters(unittest.TestCase):
 
         self.assertTrue(f(self.result, None))
 
-        self.result.state = results.CRITICAL
+        self.result.state = types.STATE_CRITICAL.code
         self.result.validate()
         self.assertTrue(f(self.result, self.record))
 
-        self.result.state = results.OK
-        self.result.state_type = results.SOFT
+        self.result.state = types.STATE_OK.code
+        self.result.state_type = types.STATE_TYPE_SOFT.code
         self.result.validate()
         self.assertTrue(f(self.result, self.record))

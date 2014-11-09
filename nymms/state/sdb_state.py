@@ -4,19 +4,20 @@ logger = logging.getLogger(__name__)
 
 from boto.exception import SDBResponseError
 
-from nymms import results
+from nymms.state.State import StateBackend
+from nymms.schemas import StateRecord, types
 from nymms.exceptions import OutOfDateState
 from nymms.utils import aws_helper
 
 
-class SDBStateBackend(object):
+class SDBStateBackend(StateBackend):
     def __init__(self, region, domain_name):
         self.region = region
         self.domain_name = domain_name
 
         self._conn = None
         self._domain = None
-        logger.debug("%s initialized.", self.__class__.__name__)
+        super(SDBStateBackend, self).__init__()
 
     @property
     def conn(self):
@@ -31,15 +32,15 @@ class SDBStateBackend(object):
         return self._domain
 
     def _build_new_state(self, task_id, result, previous):
-        new_state = results.StateRecord(task_id,
-                                        state=result.state,
-                                        state_type=result.state_type)
+        new_state = StateRecord({'id': task_id,
+                                 'state': result.state,
+                                 'state_type': result.state_type})
         # Only update last_state_change if the state has changed to a new
         # HARD state_type state, otherwise we use the previous
         # last_state_change
         if previous:
-            if (new_state.state_type == results.SOFT or
-                    previous.state == new_state.state):
+            if (new_state.state_type is types.STATE_TYPE_SOFT or
+                    previous.state is new_state.state):
                 new_state.last_state_change = previous.last_state_change
 
         new_state.validate()
@@ -49,7 +50,7 @@ class SDBStateBackend(object):
         new_state = self._build_new_state(task_id, result, previous)
         expected_value = ['last_update', False]
         if previous:
-            expected_value = ['last_update', previous.last_update]
+            expected_value = ['last_update', previous.last_update.timestamp]
             if previous.last_update > new_state.last_update:
                 logger.warning(task_id + " - found previous state that is "
                                "newer than current state.  Discarding.")
@@ -60,7 +61,7 @@ class SDBStateBackend(object):
                 raise OutOfDateState(new_state, previous)
         logger.debug(task_id + " - saving state: %s", new_state.serialize())
         try:
-            self.domain.put_attributes(task_id, new_state.serialize(),
+            self.domain.put_attributes(task_id, new_state.to_primitive(),
                                        replace=True,
                                        expected_value=expected_value)
         except SDBResponseError as e:
@@ -75,12 +76,17 @@ class SDBStateBackend(object):
         state_item = self.domain.get_item(task_id, consistent_read=True)
         state = None
         if state_item:
-            try:
-                state = results.StateRecord.deserialize(state_item)
-                state.validate()
-            except Exception:
-                logger.exception("Problem deserializing state:")
-                logger.error("State data: %s", str(state_item))
+            state = self.deserialize_state(state_item)
         else:
             logger.debug("%s - no state found", task_id)
         return state
+
+    def get_all_states(self):
+        query = "select * from %s" % (self.domain_name)
+        states = []
+        for item in self.domain.select(query):
+            states.append(self.deserialize_state(item))
+        return states
+
+    def delete_record(self, key):
+        self.domain.delete_attributes(key)
