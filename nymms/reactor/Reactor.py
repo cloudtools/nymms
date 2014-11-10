@@ -126,4 +126,4 @@ class Reactor(NymmsDaemon):
                 logger.debug('Result queue empty.')
                 continue
             self.handle_result(result, **kwargs)
-            result.delete()
+            self.delete_result(result)

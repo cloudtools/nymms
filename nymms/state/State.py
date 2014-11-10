@@ -11,9 +11,10 @@ class StateBackend(object):
 
     def deserialize_state(self, item):
         try:
-            state = StateRecord(item, strict=False)
+            state = StateRecord(item, strict=False, origin=item)
             state.validate()
             return state
         except Exception:
             logger.exception("Problem deserializing state:")
             logger.error("State data: %s", str(item))
+            return None

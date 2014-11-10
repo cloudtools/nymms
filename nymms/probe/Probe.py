@@ -1,13 +1,14 @@
 import logging
-import time
 
 logger = logging.getLogger(__name__)
 
-from nymms import results
+from nymms.schemas import Result, types
 from nymms.daemon import NymmsDaemon
 from nymms.resources import Monitor
 from nymms.utils import commands
 from nymms.config.yaml_config import load_config, EmptyConfig
+
+import arrow
 
 
 TIMEOUT_OUTPUT = "Command timed out after %d seconds."
@@ -43,6 +44,9 @@ class Probe(NymmsDaemon):
     def submit_result(self, result, **kwargs):
         raise NotImplementedError
 
+    def delete_task(self, task):
+        raise NotImplementedError
+
     def execute_task(self, task, timeout, **kwargs):
         log_prefix = "%s - " % (task.id,)
         monitor = Monitor.registry[task.context['monitor']['name']]
@@ -50,29 +54,32 @@ class Probe(NymmsDaemon):
         current_attempt = int(task.attempt) + 1
         logger.debug(log_prefix + "attempt %d, executing: %s", current_attempt,
                      command)
-        result = results.Result(task.id, timestamp=task.created,
-                                task_context=task.context)
+        result = Result({'id': task.id,
+                         'timestamp': task.created,
+                         'task_context': task.context})
         try:
             output = monitor.execute(task.context, timeout,
                                      self._private_context)
             result.output = output
-            result.state = results.OK
+            result.state = types.STATE_OK
         except commands.CommandException as e:
             if isinstance(e, commands.CommandFailure):
                 result.state = e.return_code
                 result.output = e.output
             if isinstance(e, commands.CommandTimeout):
-                result.state = results.UNKNOWN
+                result.state = types.STATE_UNKNOWN
                 result.output = (TIMEOUT_OUTPUT % timeout)
         except Exception as e:
-            result.state = results.UNKNOWN
+            result.state = types.STATE_UNKNOWN
             result.output = str(e)
+        result.state_type = types.STATE_TYPE_HARD
+        result.validate()
         return result
 
     def expire_task(self, task, task_expiration):
         if task_expiration:
-            now = time.time()
-            task_lifetime = now - task.created
+            now = arrow.get()
+            task_lifetime = now.timestamp - task.created.timestamp
             if task_lifetime > task_expiration:
                 logger.debug("Task %s is older than expiration limit %d. "
                              "Skipping.", task.id, task_expiration)
@@ -99,14 +106,13 @@ class Probe(NymmsDaemon):
         last_attempt = int(task.attempt)
         current_attempt = last_attempt + 1
         result = self.execute_task(task, timeout, **kwargs)
-        result.state_type = results.HARD
         # Trying to emulate this:
         # http://nagios.sourceforge.net/docs/3_0/statetypes.html
-        if result.state == results.OK:
+        if result.state == types.STATE_OK:
             if (previous_state and not
-               previous_state.state.code == results.OK and
-               previous_state.state_type.code == results.SOFT):
-                    result.state_type = results.SOFT
+               previous_state.state == types.STATE_OK and
+               previous_state.state_type == types.STATE_TYPE_SOFT):
+                    result.state_type = types.STATE_TYPE_SOFT
         else:
             logger.debug(log_prefix + "current_attempt: %d, max_retries: %d",
                          current_attempt, max_retries)
@@ -114,9 +120,9 @@ class Probe(NymmsDaemon):
                 # XXX Hate this logic - hope to find a cleaner way to handle
                 #     it someday.
                 if (not previous_state or
-                        previous_state.state_type.code == results.SOFT or
-                        previous_state.state.code == results.OK):
-                    result.state_type = results.SOFT
+                   previous_state.state_type == types.STATE_TYPE_SOFT or
+                   previous_state.state == types.STATE_OK):
+                    result.state_type = types.STATE_TYPE_SOFT
                     delay = task.context.get('retry_delay',
                                              kwargs.get('retry_delay'))
                     delay = max(delay, 0)
@@ -124,6 +130,7 @@ class Probe(NymmsDaemon):
                     self.resubmit_task(task, delay, **kwargs)
             else:
                 logger.debug("Retry limit hit, not resubmitting.")
+        result.validate()
         return result
 
     def run(self, **kwargs):
@@ -141,4 +148,4 @@ class Probe(NymmsDaemon):
             result = self.handle_task(task, **kwargs)
             if result:
                 self.submit_result(result, **kwargs)
-            task.delete()
+            self.delete_task(task)

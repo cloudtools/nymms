@@ -3,11 +3,11 @@ import json
 
 logger = logging.getLogger(__name__)
 
-from nymms import results
 from nymms.reactor.Reactor import Reactor
 from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
 from nymms.utils.aws_helper import SNSTopic, ConnectionManager
 from nymms.state.sdb_state import SDBStateBackend
+from nymms.schemas import Result
 
 from boto.sqs.message import RawMessage
 
@@ -56,8 +56,10 @@ class AWSReactor(Reactor):
         if result:
             result_message = json.loads(result.get_body())['Message']
             result_dict = json.loads(result_message)
-            result_obj = results.Result.deserialize(result_dict,
-                                                    origin=result)
+            result_obj = Result(result_dict, origin=result)
             result_obj.validate()
 
         return result_obj
+
+    def delete_result(self, result):
+        self.queue.delete_message(result._origin)

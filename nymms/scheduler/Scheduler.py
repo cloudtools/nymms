@@ -3,8 +3,8 @@ import time
 
 from nymms.daemon import NymmsDaemon
 from nymms.resources import Node
-from nymms.tasks import Task
 from nymms.scheduler.lock.SchedulerLock import NoOpLock
+from nymms.schemas import Task
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,9 @@ class Scheduler(NymmsDaemon):
                 try:
                     task_context = tasks[node].pop()
                     task_id = self.task_id_template.format(**task_context)
-                    task = Task(task_id, context=task_context)
+                    task = Task({
+                        'id': task_id,
+                        'context': task_context})
                 except IndexError:
                     del(tasks[node])
                     continue

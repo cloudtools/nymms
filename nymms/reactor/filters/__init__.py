@@ -2,7 +2,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from nymms import results
 from nymms.schemas import types
 
 
@@ -15,7 +14,7 @@ def always_true(result, previous_state):
 
 
 def hard_state(result, previous_state):
-    if result.state_type == results.HARD:
+    if result.state_type == types.STATE_TYPE_HARD:
         logger.debug("%s state_type is HARD.", result.id)
         return True
     return False
@@ -28,40 +27,40 @@ def changed_state(result, previous_state):
     if not previous_state:
         logger.debug("No previous state found.")
         return True
-    if not previous_state.state.code == result.state:
+    if not previous_state.state == result.state:
         logger.debug("Previous state (%s) does not match current "
                      "state (%s).", previous_state.state.name,
-                     result.state_name)
+                     result.state.name)
         return True
-    if not previous_state.state_type.code == result.state_type:
+    if not previous_state.state_type == result.state_type:
         logger.debug("Previous state_type (%s) does not match current "
                      "state_type (%s).",
                      previous_state.state.name,
-                     result.state_type_name)
+                     result.state_type.name)
         return True
     return False
 
 
 def ok_state(result, previous_state):
-    if result.state == results.OK:
+    if result.state == types.STATE_OK:
         return True
     return False
 
 
 def warning_state(result, previous_state):
-    if result.state == results.WARNING:
+    if result.state == types.STATE_WARNING:
         return True
     return False
 
 
 def critical_state(result, previous_state):
-    if result.state == results.CRITICAL:
+    if result.state == types.STATE_CRITICAL:
         return True
     return False
 
 
 def unknown_state(result, previous_state):
-    if result.state >= results.UNKNOWN:
+    if result.state >= types.STATE_UNKNOWN:
         return True
     return False
 
@@ -80,8 +79,8 @@ def active_command(result, previous_state):
 
 def not_soft_recovery(result, previous_state):
     if (previous_state and
-       previous_state.state_type.code == types.STATE_TYPE_SOFT
-       and result.state == results.OK):
+       previous_state.state_type == types.STATE_TYPE_SOFT
+       and result.state == types.STATE_OK):
         return False
     return True
 
@@ -91,6 +90,6 @@ def no_previous(result, previous_state):
 
 
 def not_first_ok(result, previous_state):
-    if no_previous(result, previous_state) and result.state == results.OK:
+    if no_previous(result, previous_state) and result.state == types.STATE_OK:
         return False
     return True

@@ -55,5 +55,5 @@ class AWSScheduler(Scheduler):
         logger.debug("Sending task '%s' to queue '%s'.", task.id,
                      queue.name)
         m = Message()
-        m.set_body(json.dumps(task.serialize()))
+        m.set_body(json.dumps(task.to_primitive()))
         return queue.write(m)

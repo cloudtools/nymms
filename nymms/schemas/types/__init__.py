@@ -1,9 +1,11 @@
 import logging
 import collections
+import json
 
 logger = logging.getLogger(__name__)
 
 from schematics.types import BaseType
+from schematics.exceptions import ValidationError
 
 import arrow
 
@@ -16,6 +18,16 @@ class TimestampType(BaseType):
 
     def to_primitive(self, value, context=None):
         return value.timestamp
+
+
+class JSONType(BaseType):
+    def to_native(self, value, context=None):
+        if isinstance(value, basestring):
+            return json.loads(value)
+        return value
+
+    def to_primitive(self, value, context=None):
+        return json.dumps(value)
 
 
 StateObject = collections.namedtuple('StateObject', ['name', 'code'])
@@ -31,6 +43,10 @@ STATES = collections.OrderedDict([
 
 
 class StateType(BaseType):
+    def __init__(self, *args, **kwargs):
+        super(StateType, self).__init__(*args, choices=STATES.values(),
+                                        **kwargs)
+
     def to_native(self, value, context=None):
         if isinstance(value, StateObject):
             return value
@@ -41,7 +57,11 @@ class StateType(BaseType):
             except IndexError:
                 return STATE_UNKNOWN
         except ValueError:
-            return STATES[value.lower()]
+            try:
+                return STATES[value.lower()]
+            except KeyError:
+                raise ValidationError(self.messages['choices'].format(
+                    unicode(self.choices)))
 
     def to_primitive(self, value, context=None):
         return value.code
@@ -56,13 +76,22 @@ STATE_TYPES = collections.OrderedDict([
 
 
 class StateTypeType(BaseType):
+    def __init__(self, *args, **kwargs):
+        super(StateTypeType, self).__init__(*args,
+                                            choices=STATE_TYPES.values(),
+                                            **kwargs)
+
     def to_native(self, value, context=None):
         if isinstance(value, StateTypeObject):
             return value
         try:
             return STATE_TYPES.values()[int(value)]
         except ValueError:
-            return STATE_TYPES[value.lower()]
+            try:
+                return STATE_TYPES[value.lower()]
+            except KeyError:
+                raise ValidationError(self.messages['choices'].format(
+                    unicode(self.choices)))
 
     def to_primitive(self, value, context=None):
         return value.code

@@ -5,7 +5,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from nymms.schemas.types import TimestampType, StateType, StateTypeType
+from nymms.schemas.types import (TimestampType, StateType, StateTypeType,
+                                 JSONType)
 
 from schematics.models import Model
 from schematics.types import StringType, IPv4Type, UUIDType, IntType
@@ -69,9 +70,47 @@ class Suppression(Model):
         return new_suppression
 
 
-class StateRecord(Model):
+class StateModel(Model):
+    state = StateType(required=True)
+    state_type = StateTypeType(required=True)
+
+    @property
+    def state_name(self):
+        return self.state.name
+
+    @property
+    def state_type_name(self):
+        return self.state_type.name
+
+
+class OriginModel(Model):
+    def __init__(self, raw_data=None, deserialize_mapping=None, strict=True,
+                 origin=None):
+        super(OriginModel, self).__init__(
+            raw_data=raw_data,
+            deserialize_mapping=deserialize_mapping,
+            strict=strict)
+        self._origin = origin
+
+
+class Task(OriginModel):
+    id = StringType(required=True)
+    created = TimestampType(default=time.time)
+    attempt = IntType(default=0)
+    context = JSONType()
+
+    def increment_attempt(self):
+        self.attempt += 1
+
+
+class Result(StateModel, OriginModel):
+    id = StringType(required=True)
+    timestamp = TimestampType(default=time.time)
+    output = StringType()
+    task_context = JSONType()
+
+
+class StateRecord(StateModel, OriginModel):
     id = StringType(required=True)
     last_update = TimestampType(default=time.time)
     last_state_change = TimestampType(default=time.time)
-    state = StateType(required=True)
-    state_type = StateTypeType(required=True)

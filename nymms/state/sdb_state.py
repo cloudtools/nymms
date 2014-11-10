@@ -88,5 +88,5 @@ class SDBStateBackend(StateBackend):
             states.append(self.deserialize_state(item))
         return states
 
-    def delete_record(self, key):
-        self.domain.delete_attributes(key)
+    def delete_record(self, record):
+        record._origin.delete()

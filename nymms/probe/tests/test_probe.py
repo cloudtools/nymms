@@ -6,21 +6,21 @@ os.environ['PATH'] += ":/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin"
 os.environ['PATH'] += ":/usr/local/sbin"
 
 from nymms.probe.Probe import Probe, TIMEOUT_OUTPUT
-from nymms import results, resources
-from nymms.tasks import Task
+from nymms.schemas import types, Result, Task
+from nymms import resources
 from nymms.state.State import StateBackend
 
 result_codes = [
-    results.CRITICAL,
-    results.WARNING,
-    results.CRITICAL,
-    results.WARNING,
-    results.WARNING,
-    results.OK,
-    results.OK,
-    results.UNKNOWN,
-    results.OK,
-    results.OK
+    types.STATE_CRITICAL,
+    types.STATE_WARNING,
+    types.STATE_CRITICAL,
+    types.STATE_WARNING,
+    types.STATE_WARNING,
+    types.STATE_OK,
+    types.STATE_OK,
+    types.STATE_UNKNOWN,
+    types.STATE_OK,
+    types.STATE_OK
 ]
 
 true_output = "Good output"
@@ -38,25 +38,31 @@ class DummyStateBackend(StateBackend):
         self.states = [
             None,
             {'last_update': 1, 'last_state_change': 0,
-                'state': results.CRITICAL, 'state_type': results.SOFT},
+                'state': types.STATE_CRITICAL,
+                'state_type': types.STATE_TYPE_SOFT},
             {'last_update': 2, 'last_state_change': 0,
-                'state': results.WARNING, 'state_type': results.SOFT},
+                'state': types.STATE_WARNING,
+                'state_type': types.STATE_TYPE_SOFT},
             {'last_update': 3, 'last_state_change': 3,
-                'state': results.CRITICAL, 'state_type': results.HARD},
+                'state': types.STATE_CRITICAL,
+                'state_type': types.STATE_TYPE_HARD},
             {'last_update': 4, 'last_state_change': 4,
-                'state': results.WARNING, 'state_type': results.HARD},
+                'state': types.STATE_WARNING,
+                'state_type': types.STATE_TYPE_HARD},
             {'last_update': 5, 'last_state_change': 4,
-                'state': results.WARNING, 'state_type': results.HARD},
+                'state': types.STATE_WARNING,
+                'state_type': types.STATE_TYPE_HARD},
             {'last_update': 6, 'last_state_change': 6,
-                'state': results.OK, 'state_type': results.HARD},
+                'state': types.STATE_OK, 'state_type': types.STATE_TYPE_HARD},
             {'last_update': 7, 'last_state_change': 6,
-                'state': results.OK, 'state_type': results.HARD},
+                'state': types.STATE_OK, 'state_type': types.STATE_TYPE_HARD},
             {'last_update': 8, 'last_state_change': 8,
-                'state': results.UNKNOWN, 'state_type': results.SOFT},
+                'state': types.STATE_UNKNOWN,
+                'state_type': types.STATE_TYPE_SOFT},
             {'last_update': 9, 'last_state_change': 9,
-                'state': results.OK, 'state_type': results.SOFT},
+                'state': types.STATE_OK, 'state_type': types.STATE_TYPE_SOFT},
             {'last_update': 10, 'last_state_change': 9,
-                'state': results.OK, 'state_type': results.HARD}
+                'state': types.STATE_OK, 'state_type': types.STATE_TYPE_HARD}
         ]
         self.state_iter = iter(self.states)
 
@@ -70,14 +76,12 @@ class DummyStateBackend(StateBackend):
 
 
 class DummyProbe(Probe):
-    def __init__(self):
-        self.task = Task('test:task',
-                         context={
-                             'monitor': {
-                                 'name': 'true_monitor'
-                             }
-                         })
-        self.results_iter = iter(result_codes)
+    def __init__(self, state_backend=DummyStateBackend):
+        self.task = Task({
+            'id': 'test:task',
+            'context': {'monitor': {'name': 'true_monitor'}}})
+        self.state_backend = state_backend()
+        self.results_iter = iter(self.state_backend.states[1:])
 
     def get_task(self, **kwargs):
         return self.task
@@ -86,15 +90,19 @@ class DummyProbe(Probe):
         self.task.increment_attempt()
 
     def submit_result(self, result, **kwargs):
-        if result.state_type == results.HARD:
+        if result.state_type == types.STATE_TYPE_HARD:
             self.task.attempt = 0
         return result
 
     def execute_task(self, task, timeout, **kwargs):
-        result = results.Result(task.id, timestamp=task.created,
-                                task_context=task.context)
-        result.state = next(self.results_iter)
+        result = Result({'id': task.id,
+                         'timestamp': task.created,
+                         'task_context': task.context})
+        r = next(self.results_iter)
+        result.state = r['state']
+        result.state_type = r['state_type']
         result.output = 'Some output here.'
+        result.validate()
         return result
 
 
@@ -126,8 +134,10 @@ class TestStateChange(unittest.TestCase):
         now = time.time()
         t = self.probe.get_task()
         t.created = now
+        t.validate()
         self.assertFalse(self.probe.expire_task(t, expiration))
         t.created = now - (expiration + 5)
+        t.validate()
         self.assertTrue(self.probe.expire_task(t, expiration))
 
 
@@ -135,40 +145,30 @@ class TestExecuteTask(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.probe = Probe()
-        cls.true_task = Task('test:true_monitor',
-                             context={
-                                 'monitor': {
-                                     'name': 'true_monitor',
-                                 }
-                             })
-        cls.fail_task = Task('test:fail_monitor',
-                             context={
-                                 'monitor': {
-                                     'name': 'fail_monitor',
-                                 }
-                             })
-        cls.timeout_task = Task('test:timeout_monitor',
-                                context={
-                                    'monitor': {
-                                        'name': 'sleep_monitor',
-                                    },
-                                    'sleep_time': 2,
-                                })
+        cls.true_task = Task({
+            'id': 'test:true_monitor',
+            'context': {'monitor': {'name': 'true_monitor'}}})
+        cls.fail_task = Task({
+            'id': 'test:fail_monitor',
+            'context': {'monitor': {'name': 'fail_monitor'}}})
+        cls.timeout_task = Task({
+            'id': 'test:timeout_monitor',
+            'context': {'monitor': {'name': 'sleep_monitor'},
+                        'sleep_time': 2}})
         cls.probe._private_context = {}
 
     def test_successful_execute_task(self):
         result = self.probe.execute_task(self.true_task, 30)
-        print result.output
-        self.assertEqual(result.state, results.OK)
+        self.assertEqual(result.state, types.STATE_OK)
         self.assertEqual(result.output.strip(), true_output)
 
     def test_failed_execute_task(self):
         result = self.probe.execute_task(self.fail_task, 30)
-        self.assertEqual(result.state, results.WARNING)
+        self.assertEqual(result.state, types.STATE_WARNING)
         self.assertEqual(result.output.strip(), '')
 
     def test_timeout_execute_task(self):
         timeout = 1
         result = self.probe.execute_task(self.timeout_task, timeout)
-        self.assertEqual(result.state, results.UNKNOWN)
+        self.assertEqual(result.state, types.STATE_UNKNOWN)
         self.assertEqual(result.output.strip(), TIMEOUT_OUTPUT % timeout)

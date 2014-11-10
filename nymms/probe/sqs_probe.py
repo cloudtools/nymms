@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 
 from boto.sqs.message import Message
 
-from nymms.tasks import Task
+from nymms.schemas import Task
 from nymms.probe.Probe import Probe
 from nymms.state.sdb_state import SDBStateBackend
 from nymms.utils.aws_helper import SNSTopic, ConnectionManager
@@ -51,8 +51,7 @@ class SQSProbe(Probe):
                                     wait_time_seconds=wait_time)
         task = None
         if task_item:
-            task = Task.deserialize(json.loads(task_item.get_body()),
-                                    origin=task_item)
+            task = Task(json.loads(task_item.get_body()), origin=task_item)
         return task
 
     def resubmit_task(self, task, delay, **kwargs):
@@ -65,5 +64,8 @@ class SQSProbe(Probe):
 
     def submit_result(self, result, **kwargs):
         logger.debug("%s - submitting '%s/%s' result", result.id,
-                     result.state_name, result.state_type_name)
-        return self.topic.publish(json.dumps(result.serialize()))
+                     result.state.name, result.state_type.name)
+        return self.topic.publish(json.dumps(result.to_primitive()))
+
+    def delete_task(self, task):
+        self.queue.delete_message(task._origin)
