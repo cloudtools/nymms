@@ -10,14 +10,16 @@ cli.setup_logging(args.verbose)
 from nymms.config import config
 from nymms.reactor.aws_reactor import AWSReactor
 
-config.load_config(args.config)
+config.load_config(args.config, base_dir=args.base_dir)
 
 region = config.settings['region']
 
 results_topic = config.settings['results_topic']
 state_domain = config.settings['state_domain']
 queue_name = config.settings['reactor']['queue_name']
-handler_config_path = config.settings['reactor']['handler_config_path']
+handler_config_path = config.path_join(
+    config.settings['reactor']['handler_config_path'],
+    base_dir=args.base_dir)
 wait_time = config.settings['reactor']['queue_wait_time']
 visibility_timeout = config.settings['reactor']['visibility_timeout']
 suppress_domain = config.settings['suppress']['domain']

@@ -20,6 +20,12 @@ class TimestampType(BaseType):
         return value.timestamp
 
 
+class DatetimeType(TimestampType):
+
+    def to_primitive(self, value, context=None):
+        return value.isoformat()
+
+
 class JSONType(BaseType):
     def to_native(self, value, context=None):
         if isinstance(value, basestring):
@@ -67,6 +73,12 @@ class StateType(BaseType):
         return value.code
 
 
+class StateNameType(StateType):
+
+    def to_primitive(self, value, context=None):
+        return value.name
+
+
 StateTypeObject = collections.namedtuple('StateTypeObject', ['name', 'code'])
 STATE_TYPE_SOFT = StateTypeObject('soft', 0)
 STATE_TYPE_HARD = StateTypeObject('hard', 1)
@@ -95,3 +107,9 @@ class StateTypeType(BaseType):
 
     def to_primitive(self, value, context=None):
         return value.code
+
+
+class StateTypeNameType(StateTypeType):
+
+    def to_primitive(self, value, context=None):
+        return value.name

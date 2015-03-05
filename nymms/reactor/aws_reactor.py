@@ -56,9 +56,18 @@ class AWSReactor(Reactor):
         if result:
             result_message = json.loads(result.get_body())['Message']
             result_dict = json.loads(result_message)
-            result_obj = Result(result_dict, origin=result)
-            result_obj.validate()
-
+            # Not sure why these fields are sometimes serialized but
+            # mostly not... regardless they cause problems because they
+            # are just properties of the model and not fields.
+            result_dict.pop('state_name', None)
+            result_dict.pop('state_type_name', None)
+            try:
+                result_obj = Result(result_dict, origin=result)
+                result_obj.validate()
+            except Exception as e:
+                logger.debug('Got unexpected message: %s', result_dict)
+                logger.exception(
+                    'Error reading result from queue: %s', e.message)
         return result_obj
 
     def delete_result(self, result):

@@ -6,10 +6,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 from nymms.schemas.types import (TimestampType, StateType, StateTypeType,
-                                 JSONType)
+                                 JSONType, StateNameType, StateTypeNameType,
+                                 DatetimeType)
 
 from schematics.models import Model
-from schematics.types import StringType, IPv4Type, UUIDType, IntType
+from schematics.types import (
+    StringType, IPv4Type, UUIDType, IntType)
 import arrow
 
 
@@ -70,6 +72,14 @@ class Suppression(Model):
         return new_suppression
 
 
+class APISuppression(Suppression):
+    """Suppression Model with friendler date fields.
+    """
+    created = DatetimeType(default=time.time)
+    disabled = DatetimeType(serialize_when_none=True)
+    expires = DatetimeType(required=True)
+
+
 class StateModel(Model):
     state = StateType(required=True)
     state_type = StateTypeType(required=True)
@@ -110,7 +120,24 @@ class Result(StateModel, OriginModel):
     task_context = JSONType()
 
 
+class APIResult(Result):
+    """Result model with friendlier fields for input/output
+    """
+    timestamp = DatetimeType(default=time.time)
+    state = StateNameType(required=True)
+    state_type = StateTypeNameType(required=True)
+
+
 class StateRecord(StateModel, OriginModel):
     id = StringType(required=True)
     last_update = TimestampType(default=time.time)
     last_state_change = TimestampType(default=time.time)
+
+
+class APIStateRecord(StateRecord):
+    """StateRecord model with friendlier fields for input/output
+    """
+    state = StateNameType(required=True)
+    state_type = StateTypeNameType(required=True)
+    last_update = DatetimeType(default=time.time)
+    last_state_change = DatetimeType(default=time.time)

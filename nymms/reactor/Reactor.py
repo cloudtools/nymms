@@ -22,7 +22,9 @@ class Reactor(NymmsDaemon):
 
     def _list_handler_configs(self, path):
         path = os.path.expanduser(path)
-        return glob.glob(os.path.join(path, '*.conf'))
+        configs = glob.glob(os.path.join(path, '*.conf'))
+        configs += glob.glob(os.path.join(path, '*.yaml'))
+        return configs
 
     def _get_handler_name(self, filename):
         return os.path.basename(filename)[:-5]
@@ -47,7 +49,7 @@ class Reactor(NymmsDaemon):
 
     def _load_handlers(self, handler_config_path, **kwargs):
         conf_files = self._list_handler_configs(handler_config_path)
-        logger.debug("Loading handlers from %s", handler_config_path)
+        logger.info("Loading handlers from %s", handler_config_path)
         for f in conf_files:
             handler_name = self._get_handler_name(f)
             # We could eventually have the handlers get loaded everytime and

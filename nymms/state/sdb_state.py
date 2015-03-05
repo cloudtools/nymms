@@ -81,18 +81,20 @@ class SDBStateBackend(StateBackend):
             logger.debug("%s - no state found", task_id)
         return state
 
-    def get_all_states(self, filters=None, order_by='last_update'):
+    def get_all_states(self, filters=None, order_by='last_update',
+                       model_cls=StateRecord):
         query = "select * from %s" % (self.domain_name)
         if filters:
             query += " where "
         query += ' and '.join(filters)
 
         if order_by:
+            query += " where %s is not null" % order_by
             query += " order by `%s`" % order_by
 
         states = []
         for item in self.domain.select(query):
-            states.append(self.deserialize_state(item))
+            states.append(self.deserialize_state(item, model_cls=model_cls))
         return states
 
     def delete_record(self, record):

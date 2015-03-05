@@ -53,7 +53,7 @@ class SDBSuppressFilterBackend(SuppressFilterBackend):
         """
         self.domain.delete_attributes(key)
 
-    def get_suppressions(self, expire, active=True):
+    def get_suppressions(self, expire, active=True, model_cls=Suppression):
         """Returns a list of suppression filters which were active between
         start and end
 
@@ -78,7 +78,7 @@ class SDBSuppressFilterBackend(SuppressFilterBackend):
         suppressions = []
         for item in self.domain.select(query, consistent_read=True):
             try:
-                suppressions.append(Suppression(item))
+                suppressions.append(model_cls(item))
             except schematics.exceptions.ModelConversionError as e:
                 logger.warning("Skipping invalid suppression: %s", item)
                 logger.warning("    %s", e.message)

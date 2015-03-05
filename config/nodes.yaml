@@ -1,0 +1,8 @@
+!include /etc/nymms/nodes/\*.yaml
+
+local:
+  monitoring_groups:
+    - local
+www.google.com:
+  monitoring_groups:
+    - google

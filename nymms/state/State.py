@@ -9,9 +9,9 @@ class StateBackend(object):
     def __init__(self):
         logger.debug("%s initialized.", self.__class__.__name__)
 
-    def deserialize_state(self, item):
+    def deserialize_state(self, item, model_cls=StateRecord):
         try:
-            state = StateRecord(item, strict=False, origin=item)
+            state = model_cls(item, strict=False, origin=item)
             state.validate()
             return state
         except Exception:
