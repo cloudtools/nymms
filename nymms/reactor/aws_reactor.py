@@ -4,9 +4,9 @@ import json
 logger = logging.getLogger(__name__)
 
 from nymms.reactor.Reactor import Reactor
-from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
+from nymms.suppress.sdb_suppress import SDBSuppressionManager
 from nymms.utils.aws_helper import SNSTopic, ConnectionManager
-from nymms.state.sdb_state import SDBStateBackend
+from nymms.state.sdb_state import SDBStateManager
 from nymms.schemas import Result
 
 from boto.sqs.message import RawMessage
@@ -15,8 +15,8 @@ from boto.sqs.message import RawMessage
 class AWSReactor(Reactor):
     def __init__(self, region, topic_name, state_domain_name, queue_name,
                  suppress_domain_name, suppress_cache_timeout=60,
-                 state_backend=SDBStateBackend,
-                 suppress_backend=SDBSuppressFilterBackend):
+                 state_manager=SDBStateManager,
+                 suppression_manager=SDBSuppressionManager):
         super(AWSReactor, self).__init__()
         self.region = region
         self.topic_name = topic_name
@@ -25,10 +25,10 @@ class AWSReactor(Reactor):
         self._conn = None
         self._queue = None
 
-        self.state_backend = state_backend(region, state_domain_name)
-        self.suppress_backend = suppress_backend(region,
-                                                 suppress_cache_timeout,
-                                                 suppress_domain_name)
+        self.state_manager = state_manager(region, state_domain_name)
+        self.suppression_manager = suppression_manager(region,
+                                                       suppress_cache_timeout,
+                                                       suppress_domain_name)
 
     @property
     def conn(self):

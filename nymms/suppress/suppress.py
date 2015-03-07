@@ -7,53 +7,72 @@ import arrow
 logger = logging.getLogger(__name__)
 
 
-class SuppressFilterBackend(object):
+class SuppressionManager(object):
     """Parent SuppressFilterBackend class.  Don't use this directly!
 
     You need to define:
     add_suppression(self, suppress)
-    get_suppressions(self, expire, active)
+    get_suppressions(self, expire, include_disabled)
     deactivate_suppression(self, rowkey)
     """
-    def __init__(self, timeout):
-        self._cache_timeout = timeout
+    def __init__(self, cache_ttl):
+        self.cache_ttl = cache_ttl
         self._cache_expire_time = 0
         self._cached_suppressions = []
+        self._backend = None
+        logger.debug("%s initialized.", self.__class__.__name__)
+
         self.migrate_suppressions()
 
-    def get_active_suppressions(self):
+    @property
+    def backend(self):
+        if not self._backend:
+            self._backend = self.get_backend()
+        return self._backend
+
+    def get_active_suppressions(self, now=None):
         """Returns a list of suppression filters which are currently
         active in SDB"""
-        return self.get_suppressions(arrow.get(), True)
+        now = now or arrow.get()
+        return self.get_suppressions(now, include_disabled=False)
 
-    def get_cached_current_suppressions(self):
+    def cache_expired(self, now=None):
+        now = now or arrow.get()
+        return self._cache_expire_time < now.timestamp
+
+    def refresh_cache(self, now=None):
+        logger.debug("Refreshing reactor suppression cache")
+        now = now or arrow.get()
+        self._cache_expire_time = now.timestamp + self.cache_ttl
+        self._cached_suppressions = []
+        for suppression in self.get_active_suppressions():
+            self._cached_suppressions.append(suppression)
+
+    def get_current_suppressions(self, now=None):
         """Returns a list of currently active suppression filters"""
-        now = arrow.get()
-
-        if self._cache_expire_time < now.timestamp:
-            logger.debug("Refreshing reactor suppression cache")
-            self._cache_expire_time = now.timestamp + self._cache_timeout
-            self._cached_suppressions = []
-            filters = self.get_active_suppressions()
-            for item in filters:
-                self._cached_suppressions.append(item)
-
+        now = now or arrow.get()
+        if self.cache_expired(now):
+            self.refresh_cache(now)
         return self._cached_suppressions
 
-    def is_suppressed(self, message):
+    def is_suppressed(self, message, now=None):
         """Returns True if given message matches one of our active filters"""
-        suppressions = self.get_cached_current_suppressions()
+        now = now or arrow.get()
+        suppressions = self.get_current_suppressions(now)
         for item in suppressions:
             if item.re.search(message):
                 return item
         return False
+
+    def get_backend(self, *args, **kwargs):
+        raise NotImplementedError
 
     def add_suppression(self, suppress):
         """ Adds a suppression to the SuppressionBackend."""
         raise NotImplementedError
 
     def get_suppressions(self, expire, active=True):
-        """ Gets a single suppression from the SuppressionBackend."""
+        """ Gets all suppressions that expire after given 'expire' time. """
         raise NotImplementedError
 
     def deactivate_suppression(self, rowkey):
@@ -64,14 +83,6 @@ class SuppressFilterBackend(object):
         """ Gets all suppressions in the SuppressionBackend that are not the
         current version. The current_version can be gotten from
         nymms.schemas.Suppression.CURRENT_VERSION
-        """
-        raise NotImplementedError
-
-    def purge_suppression(self, key):
-        """ Given the key of a suppression, totally deletes it from the
-        SuppressionBackend. deactivate_suppresion should be used instead in
-        most cases, this is primarily used when migrating from old versions
-        of Suppressions to new versions (ie: in migrate_suppressions)
         """
         raise NotImplementedError
 
@@ -91,7 +102,13 @@ class SuppressFilterBackend(object):
         for item in self.get_old_suppressions():
             new_suppression = Suppression.migrate(item)
             old_key = item['rowkey']
-            self.purge_suppression(old_key)
+            self.backend.purge_suppression(old_key)
             if new_suppression:
                 logger.debug("Migrating old suppression %s.", old_key)
                 self.add_suppression(new_suppression)
+
+    def filter(self, *args, **kwargs):
+        return self.backend.filter(*args, **kwargs)
+
+    def web_filter(self, *args, **kwargs):
+        return self.backend.web_filter(*args, **kwargs)

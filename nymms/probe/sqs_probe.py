@@ -7,17 +7,17 @@ from boto.sqs.message import Message
 
 from nymms.schemas import Task
 from nymms.probe.Probe import Probe
-from nymms.state.sdb_state import SDBStateBackend
+from nymms.state.sdb_state import SDBStateManager
 from nymms.utils.aws_helper import SNSTopic, ConnectionManager
 
 
 class SQSProbe(Probe):
     def __init__(self, region, task_queue, results_topic, state_domain,
-                 state_backend=SDBStateBackend):
+                 state_manager=SDBStateManager):
         self.region = region
         self.queue_name = task_queue
         self.topic_name = results_topic
-        self.state_backend = state_backend(region, state_domain)
+        self.state_manager = state_manager(region, state_domain)
 
         self._conn = None
         self._queue = None

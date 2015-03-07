@@ -7,7 +7,7 @@ import sys
 from textwrap import TextWrapper
 
 from nymms.utils import cli
-from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
+from nymms.suppress.sdb_suppress import SDBSuppressionManager
 from nymms.config import config
 
 import arrow
@@ -33,9 +33,9 @@ region = config.settings['region']
 cache_timeout = config.settings['suppress']['cache_timeout']
 domain = config.settings['suppress']['domain']
 
-suppress = SDBSuppressFilterBackend(region, cache_timeout, domain)
+suppress = SDBSuppressionManager(region, cache_timeout, domain)
 
-filters = suppress.get_suppressions(None, not args.show_all)
+filters = suppress.get_suppressions(None, args.show_all)
 if args.format == 'csv':
     print "regex,created,expires,userid,ipaddr,comment,rowkey,active"
 

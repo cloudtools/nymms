@@ -1,6 +1,5 @@
 import re
 import uuid
-import time
 import logging
 
 logger = logging.getLogger(__name__)
@@ -13,18 +12,31 @@ from schematics.types import StringType, IPv4Type, UUIDType, IntType
 import arrow
 
 
-class Suppression(Model):
+class OriginModel(Model):
+    def __init__(self, raw_data=None, deserialize_mapping=None, strict=True,
+                 origin=None):
+        super(OriginModel, self).__init__(
+            raw_data=raw_data,
+            deserialize_mapping=deserialize_mapping,
+            strict=strict)
+        self._origin = origin
+
+
+class Suppression(OriginModel):
     CURRENT_VERSION = 2
 
     rowkey = UUIDType(default=uuid.uuid4)
     regex = StringType(required=True)
-    created = TimestampType(default=time.time)
+    created = TimestampType(default=arrow.get)
     disabled = TimestampType(serialize_when_none=False)
     expires = TimestampType(required=True)
     ipaddr = IPv4Type(required=True)
     userid = StringType(required=True)
     comment = StringType(required=True)
     version = IntType(default=CURRENT_VERSION)
+
+    default_sort_order = 'created'
+    pk = 'rowkey'
 
     @property
     def active(self):
@@ -71,8 +83,11 @@ class Suppression(Model):
 
 
 class StateModel(Model):
+    CURRENT_VERSION = 2
+
     state = StateType(required=True)
     state_type = StateTypeType(required=True)
+    version = IntType(default=CURRENT_VERSION)
 
     @property
     def state_name(self):
@@ -83,19 +98,9 @@ class StateModel(Model):
         return self.state_type.name
 
 
-class OriginModel(Model):
-    def __init__(self, raw_data=None, deserialize_mapping=None, strict=True,
-                 origin=None):
-        super(OriginModel, self).__init__(
-            raw_data=raw_data,
-            deserialize_mapping=deserialize_mapping,
-            strict=strict)
-        self._origin = origin
-
-
 class Task(OriginModel):
     id = StringType(required=True)
-    created = TimestampType(default=time.time)
+    created = TimestampType(default=arrow.get)
     attempt = IntType(default=0)
     context = JSONType()
 
@@ -105,12 +110,29 @@ class Task(OriginModel):
 
 class Result(StateModel, OriginModel):
     id = StringType(required=True)
-    timestamp = TimestampType(default=time.time)
+    timestamp = TimestampType(default=arrow.get)
     output = StringType()
     task_context = JSONType()
 
 
 class StateRecord(StateModel, OriginModel):
     id = StringType(required=True)
-    last_update = TimestampType(default=time.time)
-    last_state_change = TimestampType(default=time.time)
+    last_update = TimestampType(default=arrow.get)
+    last_state_change = TimestampType(default=arrow.get)
+
+    pk = 'id'
+    default_sort_order = 'last_update'
+
+    @classmethod
+    def migrate(cls, item):
+        new_state = None
+        try:
+            new_state = cls({
+                'id': item['id'],
+                'last_update': arrow.get(int(item['last_update'])),
+                'last_state_change': arrow.get(int(item['last_state_change'])),
+                'state': item['state'],
+                'state_type': item['state_type']})
+        except Exception:
+            logger.exception("Unable to migrate state record to v2: %s", item)
+        return new_state

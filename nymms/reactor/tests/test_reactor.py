@@ -16,9 +16,9 @@ class TestReactor(unittest.TestCase):
         cls.reactor = Reactor()
 
     def test_load_enabled_handler(self):
-        handler = self.reactor._load_handler('dummy_handler', enabled_config)
+        handler = self.reactor.load_handler('dummy_handler', enabled_config)
         self.assertIsInstance(handler, Handler)
 
     def test_load_disabled_handler(self):
-        handler = self.reactor._load_handler('dummy_handler', disabled_config)
+        handler = self.reactor.load_handler('dummy_handler', disabled_config)
         self.assertIs(handler, None)

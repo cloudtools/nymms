@@ -87,6 +87,9 @@ def parse_time(time_string, reference_time=None):
                   'm': 'minutes',
                   'h': 'hours',
                   'd': 'days'}
+    if not isinstance(time_string, basestring):
+        raise ValueError(time_string)
+
     if time_string[0] in ('+', '-'):
         unit = 's'
         offset = time_string

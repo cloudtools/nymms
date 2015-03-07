@@ -15,7 +15,7 @@ TIMEOUT_OUTPUT = "Command timed out after %d seconds."
 
 
 class Probe(NymmsDaemon):
-    state_backend = None
+    state_manager = None
 
     def get_private_context(self, private_context_file):
         if not private_context_file:
@@ -27,13 +27,13 @@ class Probe(NymmsDaemon):
                              private_context_file)
             return None
 
-    # TODO: This calls on _state_backend but setting up of the _state_backend
+    # TODO: This calls on _state_manager but setting up of the _state_manager
     #       needs to be handled in the subclass.  Not sure how I should handle
     #       this, but I really like the idea of these being base class
     #       methods since in reality all reactors should have some sort of
     #       state backend, even if its a no-op
     def get_state(self, task_id):
-        return self.state_backend.get_state(task_id)
+        return self.state_manager.get_state(task_id)
 
     def get_task(self, **kwargs):
         raise NotImplementedError

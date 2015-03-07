@@ -1,11 +1,16 @@
 import logging
 import collections
 import json
+import time
+import string
+import random
 
 logger = logging.getLogger(__name__)
 
 from schematics.types import BaseType
 from schematics.exceptions import ValidationError
+
+from nymms.utils import parse_time
 
 import arrow
 
@@ -14,10 +19,23 @@ class TimestampType(BaseType):
     def to_native(self, value, context=None):
         if isinstance(value, arrow.arrow.Arrow):
             return value
-        return arrow.get(value)
+        try:
+            return parse_time(value)
+        except ValueError:
+            return arrow.get(value)
 
     def to_primitive(self, value, context=None):
-        return value.timestamp
+        default_format = "%Y-%m-%dT%H:%M:%SZ"
+        if context:
+            timestamp_format = context.get('timestamp_format', default_format)
+        else:
+            timestamp_format = default_format
+        return value.strftime(timestamp_format)
+
+    def _mock(self, context=None):
+        year = 86400 * 365
+        return arrow.get(time.time() + (random.randrange(-1 * 20 * year,
+                                                         200 * year)))
 
 
 class JSONType(BaseType):
@@ -28,6 +46,12 @@ class JSONType(BaseType):
 
     def to_primitive(self, value, context=None):
         return json.dumps(value)
+
+    def _mock(self, context=None):
+        return dict(
+            [(random.choice(string.ascii_letters),
+              random.choice(string.printable)) for i in
+             range(random.randrange(4, 10))])
 
 
 StateObject = collections.namedtuple('StateObject', ['name', 'code'])

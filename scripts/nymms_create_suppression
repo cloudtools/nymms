@@ -7,7 +7,7 @@ import socket
 
 from nymms.schemas import Suppression
 from nymms.utils import cli, parse_time
-from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
+from nymms.suppress.sdb_suppress import SDBSuppressionManager
 from nymms.config import config
 
 import arrow
@@ -56,7 +56,7 @@ region = config.settings['region']
 cache_timeout = config.settings['suppress']['cache_timeout']
 domain = config.settings['suppress']['domain']
 
-suppress = SDBSuppressFilterBackend(region, cache_timeout, domain)
+suppress = SDBSuppressionManager(region, cache_timeout, domain)
 
 suppress_obj = Suppression({
     'comment': args.comment,
