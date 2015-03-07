@@ -53,3 +53,7 @@ nymms.egg-info
 
 # nosetest --with-coverage dumps these in CWD
 .coverage
+
+Vagrantfile
+
+vm_setup.sh
