@@ -17,12 +17,6 @@ class TimestampType(BaseType):
         return arrow.get(value)
 
     def to_primitive(self, value, context=None):
-        return value.timestamp
-
-
-class DatetimeType(TimestampType):
-
-    def to_primitive(self, value, context=None):
         return value.isoformat()
 
 

@@ -82,7 +82,8 @@ class SDBStateBackend(StateBackend):
         return state
 
     def get_all_states(self, filters=None, order_by='last_update',
-                       model_cls=StateRecord):
+                       model_cls=StateRecord,
+                       limit=None):
         query = "select * from %s" % (self.domain_name)
         if filters:
             query += " where "
@@ -93,7 +94,7 @@ class SDBStateBackend(StateBackend):
             query += " order by `%s`" % order_by
 
         states = []
-        for item in self.domain.select(query):
+        for item in self.domain.select(query, max_items=limit):
             states.append(self.deserialize_state(item, model_cls=model_cls))
         return states
 

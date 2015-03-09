@@ -6,8 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from nymms.schemas.types import (TimestampType, StateType, StateTypeType,
-                                 JSONType, StateNameType, StateTypeNameType,
-                                 DatetimeType)
+                                 JSONType, StateNameType, StateTypeNameType)
 
 from schematics.models import Model
 from schematics.types import (
@@ -75,9 +74,7 @@ class Suppression(Model):
 class APISuppression(Suppression):
     """Suppression Model with friendler date fields.
     """
-    created = DatetimeType(default=time.time)
-    disabled = DatetimeType(serialize_when_none=True)
-    expires = DatetimeType(required=True)
+    disabled = TimestampType(serialize_when_none=True)
 
 
 class StateModel(Model):
@@ -123,7 +120,6 @@ class Result(StateModel, OriginModel):
 class APIResult(Result):
     """Result model with friendlier fields for input/output
     """
-    timestamp = DatetimeType(default=time.time)
     state = StateNameType(required=True)
     state_type = StateTypeNameType(required=True)
 
@@ -139,5 +135,3 @@ class APIStateRecord(StateRecord):
     """
     state = StateNameType(required=True)
     state_type = StateTypeNameType(required=True)
-    last_update = DatetimeType(default=time.time)
-    last_state_change = DatetimeType(default=time.time)

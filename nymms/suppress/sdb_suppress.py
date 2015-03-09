@@ -36,7 +36,11 @@ class SDBSuppressFilterBackend(SuppressFilterBackend):
     def add_suppression(self, suppress):
         """Adds a suppression filter to the SDB store
         """
-        self.domain.put_attributes(suppress.rowkey, suppress.to_primitive())
+        # filter out None, since simpleDB will write "None" instead of writing
+        # a null value as you would expect.
+        attributes = {
+            k: v for k, v in suppress.to_primitive().items() if v is not None}
+        self.domain.put_attributes(suppress.rowkey, attributes)
         logger.debug("Added %s to %s", suppress.rowkey, self.domain_name)
         return suppress.rowkey
 
@@ -53,30 +57,28 @@ class SDBSuppressFilterBackend(SuppressFilterBackend):
         """
         self.domain.delete_attributes(key)
 
-    def get_suppressions(self, expire, active=True, model_cls=Suppression):
+    def get_suppressions(self, expire, active=True, model_cls=Suppression,
+                         limit=None):
         """Returns a list of suppression filters which were active between
         start and end
 
         expire = expoch time
         active = True/False to limit to only filters flagged 'active' = 'True'
         """
+        query = "select * from `%s`" % self.domain_name
+        where_clause = []
         if expire:
-            query = "select * from `%s` where `expires` >= '%s'" % (
-                    self.domain_name, expire.timestamp)
-        else:
-            query = "select * from `%s` where `expires` > '0'" % (
-                    self.domain_name,)
-
-        query += " and `created` is not null"
-
+            where_clause.append("`expires` >= '%s'" % expire.timestamp)
+        where_clause.append("`created` is not null")
         if active:
-            query += " and `disabled` is null"
-        query += " order by `created`"
+            where_clause.append('`disabled` is null')
+        query += " where " + " and ".join(where_clause) + " order by `created`"
 
-        logger.debug("Query: %s", query)
+        logger.debug("Query for suppressions: %s", query)
 
         suppressions = []
-        for item in self.domain.select(query, consistent_read=True):
+        for item in self.domain.select(
+                query, consistent_read=True, max_items=limit):
             try:
                 suppressions.append(model_cls(item))
             except schematics.exceptions.ModelConversionError as e:
