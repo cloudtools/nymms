@@ -158,11 +158,21 @@ settings = None
 version = None
 
 
-def load_config(path, force=False):
+def path_join(config_path, base_dir=None):
+    # if absolute, ignore base dir (or no base dir)
+    if config_path.startswith('/') or not base_dir:
+        return config_path
+    if not config_path.startswith(base_dir):
+        return os.path.join(base_dir, config_path)
+    return config_path
+
+
+def load_config(path, force=False, base_dir=default_conf_dir):
     global settings, version
     if settings and not force:
         return
     settings = copy.deepcopy(DEFAULTS)
+    path = path_join(path, base_dir)
     version, _config_settings = yaml_config.load_config(path)
     if _config_settings:
         deep_update(settings, _config_settings)

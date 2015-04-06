@@ -1,0 +1,13 @@
+#!/usr/bin/env python
+
+from nymms.config import config
+from nymms.utils import cli
+
+parser = cli.NymmsCommandArgs(__doc__)
+args = parser.parse_args()
+logger = cli.setup_logging(args.verbose)
+
+config.load_config(args.config, base_dir=args.base_dir)
+
+from nymms.api import routes
+routes.nymms_api.run(debug=True)

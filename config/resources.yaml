@@ -1,0 +1,30 @@
+commands:
+  check_https:
+    command_string: /usr/lib/nagios/plugins/check_http -H {{address}} -S -u {{url}} -m {{minimum_size}} -w {{warn_timeout}} -c {{crit_timeout}}
+    warn_timeout: 1
+    crit_timeout: 10
+  check_http:
+    command_string: /usr/lib/nagios/plugins/check_http -H {{address}} -u {{url}} -w {{warn_timeout}} -c {{crit_timeout}}
+    warn_timeout: 1
+    crit_timeout: 10
+  check_https_cert:
+    command_string: /usr/lib/nagios/plugins/check_http -H {{address}} -S -u {{url}} -C {{cert_days}}
+  check_file:
+    command_string: /bin/test -f {{file_name}}
+
+monitoring_groups:
+  all:
+  local:
+  google:
+
+monitors:
+  google_http:
+    command: check_http
+    url: /
+    monitoring_groups:
+      - google
+  file_tmp_woot:
+    command: check_file
+    file_name: /tmp/woot
+    monitoring_groups:
+      - local

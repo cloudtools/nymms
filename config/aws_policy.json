@@ -1,0 +1,65 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "ses:GetSendQuota",
+        "ses:SendEmail"
+      ],
+      "Sid": "NymmsSESAccess",
+      "Resource": [
+        "*"
+      ],
+      "Effect": "Allow"
+    },
+    {
+      "Action": [
+        "sns:ConfirmSubscription",
+        "sns:CreateTopic",
+        "sns:DeleteTopic",
+        "sns:GetTopicAttributes",
+        "sns:ListSubscriptions",
+        "sns:ListSubscriptionsByTopic",
+        "sns:ListTopics",
+        "sns:Publish",
+        "sns:SetTopicAttributes",
+        "sns:Subscribe",
+        "sns:Unsubscribe"
+      ],
+      "Sid": "NymmsSNSAccess",
+      "Resource": [
+        "*"
+      ],
+      "Effect": "Allow"
+    },
+    {
+      "Action": [
+        "sqs:ChangeMessageVisibility",
+        "sqs:CreateQueue",
+        "sqs:DeleteMessage",
+        "sqs:DeleteQueue",
+        "sqs:GetQueueAttributes",
+        "sqs:GetQueueUrl",
+        "sqs:ListQueues",
+        "sqs:ReceiveMessage",
+        "sqs:SendMessage",
+        "sqs:SetQueueAttributes"
+      ],
+      "Sid": "NymmsSQSAccess",
+      "Resource": [
+        "*",
+      ],
+      "Effect": "Allow"
+    },
+    {
+      "Action": [
+        "sdb:*"
+      ],
+      "Sid": "NymmsSDBAccess",
+      "Resource": [
+        "*"
+      ],
+      "Effect": "Allow"
+    }
+  ]
+}

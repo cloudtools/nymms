@@ -5,10 +5,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 from nymms.schemas.types import (TimestampType, StateType, StateTypeType,
-                                 JSONType)
+                                 JSONType, StateNameType, StateTypeNameType)
 
 from schematics.models import Model
-from schematics.types import StringType, IPv4Type, UUIDType, IntType
+from schematics.types import (
+    StringType, IPv4Type, UUIDType, IntType)
 import arrow
 
 
@@ -82,6 +83,12 @@ class Suppression(OriginModel):
         return new_suppression
 
 
+class APISuppression(Suppression):
+    """Suppression Model with friendler date fields.
+    """
+    disabled = TimestampType(serialize_when_none=True)
+
+
 class StateModel(Model):
     CURRENT_VERSION = 2
 
@@ -115,6 +122,13 @@ class Result(StateModel, OriginModel):
     task_context = JSONType()
 
 
+class APIResult(Result):
+    """Result model with friendlier fields for input/output
+    """
+    state = StateNameType(required=True)
+    state_type = StateTypeNameType(required=True)
+
+
 class StateRecord(StateModel, OriginModel):
     id = StringType(required=True)
     last_update = TimestampType(default=arrow.get)
@@ -136,3 +150,10 @@ class StateRecord(StateModel, OriginModel):
         except Exception:
             logger.exception("Unable to migrate state record to v2: %s", item)
         return new_state
+
+
+class APIStateRecord(StateRecord):
+    """StateRecord model with friendlier fields for input/output
+    """
+    state = StateNameType(required=True)
+    state_type = StateTypeNameType(required=True)

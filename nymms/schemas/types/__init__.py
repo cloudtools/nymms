@@ -25,12 +25,7 @@ class TimestampType(BaseType):
             return arrow.get(value)
 
     def to_primitive(self, value, context=None):
-        default_format = "%Y-%m-%dT%H:%M:%SZ"
-        if context:
-            timestamp_format = context.get('timestamp_format', default_format)
-        else:
-            timestamp_format = default_format
-        return value.strftime(timestamp_format)
+        return value.isoformat()
 
     def _mock(self, context=None):
         year = 86400 * 365
@@ -91,6 +86,11 @@ class StateType(BaseType):
         return value.code
 
 
+class StateNameType(StateType):
+    def to_primitive(self, value, context=None):
+        return value.name
+
+
 StateTypeObject = collections.namedtuple('StateTypeObject', ['name', 'code'])
 STATE_TYPE_SOFT = StateTypeObject('soft', 0)
 STATE_TYPE_HARD = StateTypeObject('hard', 1)
@@ -119,3 +119,8 @@ class StateTypeType(BaseType):
 
     def to_primitive(self, value, context=None):
         return value.code
+
+
+class StateTypeNameType(StateTypeType):
+    def to_primitive(self, value, context=None):
+        return value.name

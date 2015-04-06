@@ -21,7 +21,9 @@ class Reactor(NymmsDaemon):
 
     def list_handler_configs(self, path):
         path = os.path.expanduser(path)
-        return glob.glob(os.path.join(path, '*.conf'))
+        configs = glob.glob(os.path.join(path, '*.conf'))
+        configs += glob.glob(os.path.join(path, '*.yaml'))
+        return configs
 
     def get_handler_name(self, filename):
         return os.path.basename(filename)[:-5]
