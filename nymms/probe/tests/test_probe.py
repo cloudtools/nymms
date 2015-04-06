@@ -8,7 +8,6 @@ from nymms.probe.Probe import Probe, TIMEOUT_OUTPUT
 from nymms.schemas import types, Result, Task, StateRecord
 from nymms import resources
 from nymms.state.State import StateManager
-from nymms.providers.sdb import BaseBackend
 
 import arrow
 
@@ -35,7 +34,7 @@ fail_monitor = resources.Monitor('fail_monitor', command=fail_command)
 sleep_monitor = resources.Monitor('sleep_monitor', command=sleep_command)
 
 
-class DummyStateBackend(BaseBackend):
+class DummyStateBackend(object):
     def __init__(self):
         self.states = [
             None,
@@ -67,20 +66,18 @@ class DummyStateBackend(BaseBackend):
                 'state': types.STATE_OK, 'state_type': types.STATE_TYPE_HARD}
         ]
         self.state_iter = iter(self.states)
-        super(DummyStateBackend, self).__init__(StateRecord)
 
     def get(self, item_id, consistent_read=True):
         item = next(self.state_iter)
-        state = None
         if item:
             item['id'] = item_id
-            state = self.deserialize(item)
-        return state
+        return item
 
 
 class DummyStateManager(StateManager):
     def __init__(self):
         self._backend = DummyStateBackend()
+        self.schema_class = StateRecord
 
 
 class DummyProbe(Probe):

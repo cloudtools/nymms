@@ -15,15 +15,13 @@ from nymms.scheduler.aws_scheduler import AWSScheduler
 from nymms.utils import load_object_from_string
 
 
-config.load_config(args.config, base_dir=args.base_dir)
+config.load_config(args.config)
 settings = config.settings
 
-resource_version = load_resources(
-    config.path_join(settings['resources'], base_dir=args.base_dir))
+resource_version = load_resources(settings['resources'])
 
 backend_cls = load_object_from_string(settings['scheduler']['backend'])
 backend_args = settings['scheduler']['backend_args']
-backend_args['base_dir'] = args.base_dir
 backend = backend_cls(**backend_args)
 
 conn_mgr = aws_helper.ConnectionManager(config.settings['region'])

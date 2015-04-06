@@ -7,7 +7,7 @@ parser = cli.NymmsCommandArgs(__doc__)
 args = parser.parse_args()
 logger = cli.setup_logging(args.verbose)
 
-config.load_config(args.config, base_dir=args.base_dir)
+config.load_config(args.config)
 
 from nymms.api import routes
 routes.nymms_api.run(debug=True)

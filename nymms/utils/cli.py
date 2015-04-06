@@ -19,5 +19,4 @@ class NymmsCommandArgs(argparse.ArgumentParser):
     def __init__(self, *args, **kwargs):
         super(NymmsCommandArgs, self).__init__(*args, **kwargs)
         self.add_argument('-v', '--verbose', action='count', default=0)
-        self.add_argument('-d', '--base-dir', default='/etc/nymms')
-        self.add_argument('-c', '--config', default='config.yaml')
+        self.add_argument('-c', '--config', default='/etc/nymms/config.yaml')

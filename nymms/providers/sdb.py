@@ -6,22 +6,7 @@ from nymms.utils.aws_helper import ConnectionManager
 from nymms.schemas import OriginModel
 
 
-class BaseBackend(object):
-    def __init__(self, schema_class):
-        self.schema = schema_class
-
-    def deserialize(self, item, strict=False):
-        try:
-            item_obj = self.schema(item, strict=strict, origin=item)
-            item_obj.validate()
-            return item_obj
-        except Exception:
-            logger.exception("Problem deserializing item:")
-            logger.error("Data: %s", str(item))
-            return None
-
-
-class SimpleDBBackend(BaseBackend):
+class SimpleDBBackend(object):
     OPERATOR_MAP = {
         'lt': '<',
         'gt': '>',
@@ -32,14 +17,12 @@ class SimpleDBBackend(BaseBackend):
         'like': 'like',
         'notlike': 'not like'}
 
-    def __init__(self, region, domain_name, schema_class):
+    def __init__(self, region, domain_name):
         self.region = region
         self.domain_name = domain_name
 
         self._conn = None
         self._domain = None
-
-        super(SimpleDBBackend, self).__init__(schema_class)
 
     @property
     def conn(self):
@@ -59,11 +42,11 @@ class SimpleDBBackend(BaseBackend):
         if not item:
             logger.debug("Item %s not found.", item_id)
             return None
-        return self.deserialize(item)
+        return item
 
     def filter(self, filters=None, order_by=None, consistent_read=True,
                max_items=None, next_token=None):
-        order_by = order_by or getattr(self.schema, 'default_sort_order')
+        order_by = order_by
 
         query = "select * from %s" % self.domain_name
         if filters:
@@ -88,30 +71,12 @@ class SimpleDBBackend(BaseBackend):
                                            max_items=max_items,
                                            next_token=next_token)
         for item in query_results:
-            results.append(self.deserialize(item))
+            results.append(item)
 
         _next_token = query_results.next_token
         if _next_token:
             _next_token = _next_token.replace('\n', '')
         return (results, _next_token)
-
-    def web_filter(self, filters=None, order_by=None, consistent_read=True,
-                   max_items=None, next_token=None):
-        new_filters = []
-        for (field, value) in filters:
-            try:
-                field, operator = field.split('__')
-            except ValueError:
-                operator = 'eq'
-            operator = self.OPERATOR_MAP[operator]
-            if field not in self.schema._fields:
-                logger.debug("Invalid field in query string.")
-                continue
-            new_filters.append("`%s` %s '%s'" % (field, operator, value))
-        logging.debug(new_filters)
-        return self.filter(filters=new_filters, order_by=order_by,
-                           consistent_read=consistent_read,
-                           max_items=max_items, next_token=next_token)
 
     def purge(self, item_or_key):
         """ Deletes from the datastore entirely. Shouldn't be used in most

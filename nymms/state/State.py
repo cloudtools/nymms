@@ -6,8 +6,9 @@ from nymms.schemas import StateRecord, types
 
 
 class StateManager(object):
-    def __init__(self):
+    def __init__(self, schema_class=StateRecord):
         self._backend = None
+        self.schema_class = schema_class
         self.migrate()
         logger.debug("%s initialized.", self.__class__.__name__)
 
@@ -21,9 +22,9 @@ class StateManager(object):
         raise NotImplementedError
 
     def build_new_state(self, task_id, result, previous):
-        new_state = StateRecord({'id': task_id,
-                                 'state': result.state,
-                                 'state_type': result.state_type})
+        new_state = self.schema_class({'id': task_id,
+                                       'state': result.state,
+                                       'state_type': result.state_type})
         # Only update last_state_change if the state has changed to a new
         # HARD state_type state, otherwise we use the previous
         # last_state_change
@@ -35,24 +36,35 @@ class StateManager(object):
         new_state.validate()
         return new_state
 
+    def deserialize(self, item, strict=False):
+        try:
+            item_obj = self.schema_class(item, strict=strict, origin=item)
+            item_obj.validate()
+            return item_obj
+        except Exception:
+            logger.exception("Problem deserializing item:")
+            logger.error("Data: %s", str(item))
+            return None
+
     def get_state(self, task_id):
-        return self.backend.get(task_id)
+        item = self.backend.get(task_id)
+        if item:
+            return self.deserialize(item)
+        return None
 
     def delete_record(self, record):
         return self.backend.purge(record)
 
     def filter(self, *args, **kwargs):
-        return self.backend.filter(*args, **kwargs)
-
-    def web_filter(self, *args, **kwargs):
-        return self.backend.web_filter(*args, **kwargs)
+        result, next_token = self.backend.filter(*args, **kwargs)
+        return ([self.deserialize(i) for i in result], next_token)
 
     def migrate(self):
         """ Temporary method, used to update all expressions to the new format
         using schematics & arrow.
         """
         for item in self.get_old_states():
-            new_state = StateRecord.migrate(item)
+            new_state = self.schema_class.migrate(item)
             old_key = item['id']
             self.backend.purge(old_key)
             if new_state:

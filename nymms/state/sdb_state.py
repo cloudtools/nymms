@@ -11,11 +11,11 @@ from nymms.providers.sdb import SimpleDBBackend
 
 
 class SDBStateManager(StateManager):
-    def __init__(self, region, domain_name):
+    def __init__(self, region, domain_name, schema_class=StateRecord):
         self.region = region
         self.domain_name = domain_name
 
-        super(SDBStateManager, self).__init__()
+        super(SDBStateManager, self).__init__(schema_class)
 
     @property
     def conn(self):
@@ -26,13 +26,13 @@ class SDBStateManager(StateManager):
         return self.backend.domain
 
     def get_backend(self):
-        return SimpleDBBackend(self.region, self.domain_name, StateRecord)
+        return SimpleDBBackend(self.region, self.domain_name)
 
     def save_state(self, task_id, result, previous):
         new_state = self.build_new_state(task_id, result, previous)
         expected_value = ['last_update', False]
         if previous:
-            expected_value = ['last_update', previous.last_update.timestamp]
+            expected_value = ['last_update', previous.last_update.isoformat()]
             if previous.last_update > new_state.last_update:
                 logger.warning(task_id + " - found previous state that is "
                                "newer than current state.  Discarding.")
@@ -57,5 +57,5 @@ class SDBStateManager(StateManager):
     def get_old_states(self):
         query = ("select * from `%s` where `version` is null or "
                  "`version` < '%s'" % (self.backend.domain_name,
-                                       StateRecord.CURRENT_VERSION))
+                                       self.schema_class.CURRENT_VERSION))
         return self.domain.select(query, consistent_read=True)

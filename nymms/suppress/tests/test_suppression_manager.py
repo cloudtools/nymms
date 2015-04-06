@@ -26,12 +26,13 @@ class MockSuppressionManager(SuppressionManager):
         suppressions = copy.deepcopy(SUPPRESSIONS)
         for s in suppressions:
             s.update(SUPPRESSION_COMMON)
-        return [Suppression(x) for x in suppressions]
+        return ([Suppression(x) for x in suppressions], None)
 
 
 class TestBase(unittest.TestCase):
     def setUp(self):
-        self.suppression_manager = MockSuppressionManager(cache_ttl=60)
+        self.suppression_manager = MockSuppressionManager(
+            cache_ttl=60, schema_class=Suppression)
 
     def test_is_suppressed(self):
         self.assertFalse(self.suppression_manager.is_suppressed('woot'))

@@ -15,11 +15,12 @@ class SuppressionManager(object):
     get_suppressions(self, expire, include_disabled)
     deactivate_suppression(self, rowkey)
     """
-    def __init__(self, cache_ttl):
+    def __init__(self, cache_ttl, schema_class):
         self.cache_ttl = cache_ttl
         self._cache_expire_time = 0
         self._cached_suppressions = []
         self._backend = None
+        self.schema_class = schema_class
         logger.debug("%s initialized.", self.__class__.__name__)
 
         self.migrate_suppressions()
@@ -30,11 +31,24 @@ class SuppressionManager(object):
             self._backend = self.get_backend()
         return self._backend
 
+    def deserialize(self, item, strict=False):
+        print item
+        print self.schema_class
+        try:
+            item_obj = self.schema_class(item, strict=strict, origin=item)
+            item_obj.validate()
+            return item_obj
+        except Exception:
+            logger.exception("Problem deserializing item:")
+            logger.error("Data: %s", str(item))
+            return None
+
     def get_active_suppressions(self, now=None):
         """Returns a list of suppression filters which are currently
         active in SDB"""
         now = now or arrow.get()
-        return self.get_suppressions(now, include_disabled=False)
+        # return the suppressions only, not the token
+        return self.get_suppressions(now, include_disabled=False)[0]
 
     def cache_expired(self, now=None):
         now = now or arrow.get()
@@ -67,9 +81,11 @@ class SuppressionManager(object):
     def get_backend(self, *args, **kwargs):
         raise NotImplementedError
 
-    def add_suppression(self, suppress):
-        """ Adds a suppression to the SuppressionBackend."""
-        raise NotImplementedError
+    def add_suppression(self, suppression):
+        """Adds a suppression filter to the SDB store
+        """
+        self.backend.put(suppression)
+        return suppression.rowkey
 
     def get_suppressions(self, expire, active=True):
         """ Gets all suppressions that expire after given 'expire' time. """
@@ -85,6 +101,12 @@ class SuppressionManager(object):
         nymms.schemas.Suppression.CURRENT_VERSION
         """
         raise NotImplementedError
+
+    def get(self, suppression_id):
+        item = self.backend.get(suppression_id)
+        if item:
+            return self.deserialize(item)
+        return None
 
     def deactivate_all_suppressions(self):
         """Deactivates all the active suppression filters we have currently."""
@@ -108,7 +130,5 @@ class SuppressionManager(object):
                 self.add_suppression(new_suppression)
 
     def filter(self, *args, **kwargs):
-        return self.backend.filter(*args, **kwargs)
-
-    def web_filter(self, *args, **kwargs):
-        return self.backend.web_filter(*args, **kwargs)
+        result, next_token = self.backend.filter(*args, **kwargs)
+        return ([self.deserialize(s) for s in result], next_token)
