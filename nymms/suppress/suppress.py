@@ -32,8 +32,6 @@ class SuppressionManager(object):
         return self._backend
 
     def deserialize(self, item, strict=False):
-        print item
-        print self.schema_class
         try:
             item_obj = self.schema_class(item, strict=strict, origin=item)
             item_obj.validate()
