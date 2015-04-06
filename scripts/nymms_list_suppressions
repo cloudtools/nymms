@@ -35,12 +35,11 @@ domain = config.settings['suppress']['domain']
 
 suppress = SDBSuppressionManager(region, cache_timeout, domain)
 
-filters = suppress.get_suppressions(None, args.show_all)
+result, next_token = suppress.get_suppressions(None, args.show_all)
 if args.format == 'csv':
     print "regex,created,expires,userid,ipaddr,comment,rowkey,active"
 
-for item in filters:
-
+for item in result:
     if item.expires < now and not args.show_all:
         continue
 
@@ -59,7 +58,6 @@ for item in filters:
         print "    state: %s" % item.state
         print '\n'.join(comment_wrapper.wrap(item.comment))
         print
-
     elif args.format == 'csv':
         writer = csv.writer(sys.stdout)
         writer.writerow([item.regex, item.created, item.expires,
