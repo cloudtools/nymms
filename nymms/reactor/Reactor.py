@@ -59,7 +59,7 @@ class Reactor(NymmsDaemon):
                     logger.debug("Handler %s already loaded, skipping.",
                                  handler_name)
                     continue
-            conf_version, config = yaml_config.load_config(f)
+            _, config = yaml_config.load_config(f)
             handler = self.load_handler(handler_name, config, **kwargs)
             if handler:
                 self.handlers[handler_name] = handler

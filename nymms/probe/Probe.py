@@ -110,9 +110,9 @@ class Probe(NymmsDaemon):
         # http://nagios.sourceforge.net/docs/3_0/statetypes.html
         if result.state == types.STATE_OK:
             if (previous_state and not
-               previous_state.state == types.STATE_OK and
-               previous_state.state_type == types.STATE_TYPE_SOFT):
-                    result.state_type = types.STATE_TYPE_SOFT
+                    previous_state.state == types.STATE_OK and
+                    previous_state.state_type == types.STATE_TYPE_SOFT):
+                result.state_type = types.STATE_TYPE_SOFT
         else:
             logger.debug(log_prefix + "current_attempt: %d, max_retries: %d",
                          current_attempt, max_retries)

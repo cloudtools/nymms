@@ -39,7 +39,7 @@ def state():
                                       schema_class=schemas.APIStateRecord)
     args = request.args.to_dict(flat=True)
     limit = int(args.get('limit', DEFAULT_STATE_LIMIT))
-    states, next_token = state.filter(
+    states, _ = state.filter(
         filters=request.args,
         max_items=limit)
     return [s.to_primitive() for s in states]
@@ -72,7 +72,7 @@ def result():
     if to_timestamp:
         filters.append(
             'timestamp <= "%s"' % arrow.get(to_timestamp).timestamp)
-    results, next_token = backend.filter(filters=filters, max_items=limit)
+    results, _ = backend.filter(filters=filters, max_items=limit)
     return [schemas.APIResult(r).to_primitive() for r in results]
 
 
@@ -117,7 +117,7 @@ def suppress():
     if not args.get('show_inactive', False):
         filters.append("`disabled` is null")
 
-    suppressions, next_token = mgr.filter(
+    suppressions, _ = mgr.filter(
         filters=filters, max_items=limit)
     return [s.to_primitive() for s in suppressions]
 

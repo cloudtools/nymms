@@ -85,7 +85,8 @@ class SuppressionManager(object):
         self.backend.put(suppression)
         return suppression.rowkey
 
-    def get_suppressions(self, expire, active=True):
+    def get_suppressions(self, expire=None, include_disabled=False,
+                         limit=None):
         """ Gets all suppressions that expire after given 'expire' time. """
         raise NotImplementedError
 
