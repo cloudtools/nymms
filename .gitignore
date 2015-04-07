@@ -57,3 +57,6 @@ nymms.egg-info
 Vagrantfile
 
 vm_setup.sh
+
+*.egg
+.eggs/
