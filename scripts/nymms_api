@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import importlib
+
 from nymms.config import config
 from nymms.utils import cli
 
@@ -10,4 +12,8 @@ logger = cli.setup_logging(args.verbose)
 config.load_config(args.config)
 
 from nymms.api import routes
+
+for plugin in config.settings.get('api', []).get('plugins', []):
+    importlib.import_module(plugin)
+
 routes.nymms_api.run(debug=True)

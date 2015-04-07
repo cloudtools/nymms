@@ -48,7 +48,7 @@ class SDBHandler(Handler):
         # only persist alert states
         if result.state in (STATE_OK,):
             return item_name
-        self.domain.put_attributes(item_name, result.to_primitive())
+        self.domain.put_attributes(item_name, result.to_primitive(role='sdb'))
         logger.debug("Added %s to %s", item_name, self.domain_name)
         return item_name
 

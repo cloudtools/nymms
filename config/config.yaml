@@ -1,6 +1,6 @@
 # can be defined on a task by task basis
 monitor_timeout: 15
-resources: resources.yaml
+resources: config/resources.yaml
 region: us-east-1
 results_topic: nymms_results
 tasks_queue: nymms_tasks
@@ -18,10 +18,14 @@ scheduler:
   interval: 60
   backend: nymms.scheduler.backends.yaml_backend.YamlBackend
   backend_args:
-    path: nodes.yaml
+    path: config/nodes.yaml
 
 reactor:
   queue_wait_time: 20
   visibility_timeout: 30
   queue_name: reactor_queue
-  handler_config_path: handlers
+  handler_config_path: config/handlers
+
+api:
+  plugins:
+  - nymms.api.plugins.sdb_handler
