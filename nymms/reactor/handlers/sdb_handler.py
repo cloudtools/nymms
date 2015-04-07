@@ -48,7 +48,9 @@ class SDBHandler(Handler):
         # only persist alert states
         if result.state in (STATE_OK,):
             return item_name
-        self.domain.put_attributes(item_name, result.to_primitive())
+        # Need to strip the context, since it could be larger than 1k
+        self.domain.put_attributes(item_name,
+                                   result.to_primitive(role='strip_context'))
         logger.debug("Added %s to %s", item_name, self.domain_name)
         return item_name
 

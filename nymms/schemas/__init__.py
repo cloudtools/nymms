@@ -10,6 +10,7 @@ from nymms.schemas.types import (TimestampType, StateType, StateTypeType,
 from schematics.models import Model
 from schematics.types import (
     StringType, IPv4Type, UUIDType, IntType)
+from schematics.transforms import blacklist
 import arrow
 
 
@@ -120,6 +121,9 @@ class Result(StateModel, OriginModel):
     timestamp = TimestampType(default=arrow.get)
     output = StringType()
     task_context = JSONType()
+
+    class Options:
+        roles = {'strip_context': blacklist('task_context')}
 
 
 class APIResult(Result):
