@@ -8,9 +8,9 @@ from nymms.schemas.types import (TimestampType, StateType, StateTypeType,
                                  JSONType, StateNameType, StateTypeNameType)
 
 from schematics.models import Model
+from schematics.transforms import blacklist
 from schematics.types import (
     StringType, IPv4Type, UUIDType, IntType)
-from schematics.transforms import blacklist
 import arrow
 
 
