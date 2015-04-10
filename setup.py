@@ -35,7 +35,7 @@ def read(filename):
 if __name__ == '__main__':
     setup(
         name='nymms',
-        version='0.4.1',
+        version='0.5.0',
         author='Michael Barrett',
         author_email='loki77@gmail.com',
         license="New BSD license",
