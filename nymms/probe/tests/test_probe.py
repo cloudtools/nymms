@@ -1,14 +1,15 @@
 import unittest
-import time
 import os
 
 os.environ['PATH'] += ":/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin"
 os.environ['PATH'] += ":/usr/local/sbin"
 
 from nymms.probe.Probe import Probe, TIMEOUT_OUTPUT
-from nymms.schemas import types, Result, Task
+from nymms.schemas import types, Result, Task, StateRecord
 from nymms import resources
-from nymms.state.State import StateBackend
+from nymms.state.State import StateManager
+
+import arrow
 
 result_codes = [
     types.STATE_CRITICAL,
@@ -33,7 +34,7 @@ fail_monitor = resources.Monitor('fail_monitor', command=fail_command)
 sleep_monitor = resources.Monitor('sleep_monitor', command=sleep_command)
 
 
-class DummyStateBackend(StateBackend):
+class DummyStateBackend(object):
     def __init__(self):
         self.states = [
             None,
@@ -66,22 +67,26 @@ class DummyStateBackend(StateBackend):
         ]
         self.state_iter = iter(self.states)
 
-    def get_state(self, task_id):
-        state_item = next(self.state_iter)
-        state = None
-        if state_item:
-            state_item['id'] = task_id
-            state = self.deserialize_state(state_item)
-        return state
+    def get(self, item_id, consistent_read=True):
+        item = next(self.state_iter)
+        if item:
+            item['id'] = item_id
+        return item
+
+
+class DummyStateManager(StateManager):
+    def __init__(self):
+        self._backend = DummyStateBackend()
+        self.schema_class = StateRecord
 
 
 class DummyProbe(Probe):
-    def __init__(self, state_backend=DummyStateBackend):
+    def __init__(self, state_manager=DummyStateManager):
         self.task = Task({
             'id': 'test:task',
             'context': {'monitor': {'name': 'true_monitor'}}})
-        self.state_backend = state_backend()
-        self.results_iter = iter(self.state_backend.states[1:])
+        self.state_manager = state_manager()
+        self.results_iter = iter(self.state_manager.backend.states[1:])
 
     def get_task(self, **kwargs):
         return self.task
@@ -109,9 +114,9 @@ class DummyProbe(Probe):
 class TestStateChange(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.state_backend = DummyStateBackend()
+        cls.state_manager = DummyStateManager()
         cls.probe = DummyProbe()
-        cls.probe.state_backend = cls.state_backend
+        cls.probe.state_manager = cls.state_manager
 
     def test_state_change(self):
         # tests that our logic follows the nagios logic here
@@ -121,7 +126,7 @@ class TestStateChange(unittest.TestCase):
         for i, code in enumerate(result_codes):
             r = self.probe.handle_task(t, monitor_timeout=30,
                                        max_retries=2)
-            expected = self.state_backend.states[i + 1]
+            expected = self.state_manager.backend.states[i + 1]
             print "[%d] Result STATE/TYPE: %s/%s" % (i, r.state, r.state_type)
             print "[%d] Expected STATE/TYPE: %s/%s" % (i, expected['state'],
                                                        expected['state_type'])
@@ -131,12 +136,12 @@ class TestStateChange(unittest.TestCase):
 
     def test_expiration(self):
         expiration = 30
-        now = time.time()
+        now = arrow.get()
         t = self.probe.get_task()
         t.created = now
         t.validate()
         self.assertFalse(self.probe.expire_task(t, expiration))
-        t.created = now - (expiration + 5)
+        t.created = now.replace(seconds=-(expiration + 5))
         t.validate()
         self.assertTrue(self.probe.expire_task(t, expiration))
 

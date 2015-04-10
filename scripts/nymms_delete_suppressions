@@ -15,7 +15,7 @@ parser.add_argument('--deactivate-all', dest='all_filters',
 args = parser.parse_args()
 logger = cli.setup_logging(args.verbose)
 
-from nymms.suppress.sdb_suppress import SDBSuppressFilterBackend
+from nymms.suppress.sdb_suppress import SDBSuppressionManager
 from nymms.config import config
 config.load_config(args.config)
 
@@ -23,14 +23,15 @@ region = config.settings['region']
 cache_timeout = config.settings['suppress']['cache_timeout']
 domain = config.settings['suppress']['domain']
 
-suppress = SDBSuppressFilterBackend(region, cache_timeout, domain)
+suppress = SDBSuppressionManager(region, cache_timeout, domain)
 
 if args.all_filters:
     suppress.deactivate_all_suppressions()
     print "Deactivated all active suppression filters"
 elif args.rowkey:
     print "Deactivating %s" % (args.rowkey,)
-    suppress.deactivate_suppression(args.rowkey)
+    if not suppress.deactivate_suppression(args.rowkey):
+        print "    ! Key %s not found." % (args.rowkey)
 else:
     print "Please provide a --key or --deactivate-all"
     exit(-1)

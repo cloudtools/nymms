@@ -1,6 +1,7 @@
 import logging
 import copy
 import os
+import warnings
 
 logger = logging.getLogger(__name__)
 
@@ -9,8 +10,8 @@ try:
     import validictory
     validator = validictory.validate
 except ImportError:
-    logger.warning("Unable to import validictory - skipping config "
-                   "validation.")
+    warnings.warn("Unable to import validictory - skipping config validation.",
+                  ImportWarning)
 
 from nymms.config import yaml_config
 from nymms.utils import deep_update

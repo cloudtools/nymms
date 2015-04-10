@@ -1,0 +1,5 @@
+# Disabled by default, here for an example.
+handler_class: nymms.reactor.handlers.sdb_handler.SDBHandler
+enabled: true
+region: us-east-1
+alerts_domain: nymms_alerts

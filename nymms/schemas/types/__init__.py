@@ -1,11 +1,16 @@
 import logging
 import collections
 import json
+import time
+import string
+import random
 
 logger = logging.getLogger(__name__)
 
 from schematics.types import BaseType
 from schematics.exceptions import ValidationError
+
+from nymms.utils import parse_time
 
 import arrow
 
@@ -14,10 +19,18 @@ class TimestampType(BaseType):
     def to_native(self, value, context=None):
         if isinstance(value, arrow.arrow.Arrow):
             return value
-        return arrow.get(value)
+        try:
+            return parse_time(value)
+        except ValueError:
+            return arrow.get(value)
 
     def to_primitive(self, value, context=None):
-        return value.timestamp
+        return value.isoformat()
+
+    def _mock(self, context=None):
+        year = 86400 * 365
+        return arrow.get(time.time() + (random.randrange(-1 * 20 * year,
+                                                         200 * year)))
 
 
 class JSONType(BaseType):
@@ -28,6 +41,12 @@ class JSONType(BaseType):
 
     def to_primitive(self, value, context=None):
         return json.dumps(value)
+
+    def _mock(self, context=None):
+        return dict(
+            [(random.choice(string.ascii_letters),
+              random.choice(string.printable)) for i in
+             range(random.randrange(4, 10))])
 
 
 StateObject = collections.namedtuple('StateObject', ['name', 'code'])
@@ -67,6 +86,11 @@ class StateType(BaseType):
         return value.code
 
 
+class StateNameType(StateType):
+    def to_primitive(self, value, context=None):
+        return value.name
+
+
 StateTypeObject = collections.namedtuple('StateTypeObject', ['name', 'code'])
 STATE_TYPE_SOFT = StateTypeObject('soft', 0)
 STATE_TYPE_HARD = StateTypeObject('hard', 1)
@@ -95,3 +119,8 @@ class StateTypeType(BaseType):
 
     def to_primitive(self, value, context=None):
         return value.code
+
+
+class StateTypeNameType(StateTypeType):
+    def to_primitive(self, value, context=None):
+        return value.name
