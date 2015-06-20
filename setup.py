@@ -8,9 +8,6 @@ install_requires = [
     "arrow>=0.5.4",
     "boto>=2.36.0",
     "Flask>=0.10.1",
-    "Flask-API>=0.6.2",
-    "gnureadline>=6.3.3",
-    "itsdangerous>=0.24",
     "Jinja2>=2.7.3",
     "MarkupSafe>=0.23",
     "python-dateutil>=2.4.0",
@@ -19,6 +16,7 @@ install_requires = [
     "six>=1.9.0",
     "validictory>=1.0.0",
     "Werkzeug>=0.10.1",
+    "Flask-API==0.6.2",
 ]
 
 tests_require = [
