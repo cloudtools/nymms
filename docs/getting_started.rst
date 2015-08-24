@@ -20,45 +20,39 @@ Installing NYMMS
 On Ubuntu
 =========
 
-I maintain a set of packages for installing NYMMS on your Ubuntu Precise
-system.  In order to install these you first need to add my PPA & key to your
-sources.  You can find the directions to do so
-`here <https://launchpad.net/~loki77/+archive/nymms>`_.
+Maintaining the Ubuntu packages proved to be difficult after NYMMS started
+using multiple third party python packages. Because of that, we no longer
+maintain the Ubuntu packages. Instead you should use the docker images (see
+below)
 
-Once you've done that, you can use apt to download the packages::
+Using Docker
+============
 
-    apt-get install python-nymms
-    apt-get install nymms-common
-    apt-get install nymms-reactor nymms-probe nymms-scheduler
+A docker image is provided that can be used to run any of the daemons used in
+NYMMS. It can be pulled from `phobologic/nymms`. To run the daemons, you can
+launch them with the following command:
 
-The first package is the python code that makes up NYMMS.  The second package
-is some common configuration used by Ubuntu for running the NYMMS daemons.  The
-last three packages are mainly startup scripts for starting NYMMS via Ubuntu's
-`Upstart`_ system.
+  docker run -e "AWS_ACCESS_KEY_ID=<AWS_ACCESS_KEY_ID>" -e "AWS_SECRET_ACCESS_KEY=<AWS_SECRET_ACCESS_KEY>" --rm -it phobologic/nymms:latest /[scheduler|probe|reactor] <OPTIONAL_ARGS>
 
-Once those packages are installed you only need to provide NYMMS with the
-correct AWS permissions in order to access the various services it makes use
-of.  See `Permissions`_ below.
+For example, to run the scheduler (with verbose logging, the -v) you can run:
 
-.. note::
+  docker run --rm -it phobologic/nymms:latest /scheduler -v
 
-    If you decide to provide the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
-    environment variables for a user, you can store them in
-    /etc/default/nymms-common.  Be sure to restart each of the daemons after
-    doing so.
+You can also set the `AWS_ACCESS_KEY_ID` & `AWS_SECRET_ACCESS_KEY` in a file,
+and then use `--env-file` rather than specifying the variables on the command
+line. Optionally, if you are running on a host in EC2 that has an IAM profile
+with all the necessary permissions, you do not need to specify the keys at all.
 
-These packages will include a basic config as well as a few example nodes,
-monitors and handlers to give an example of how the system runs.  You can
-control the stopping/starting of all the daemons with various upstart
-commands - there is one upstart script per daemon.  For example to restart all
-three daemons you would call::
+The docker container has the example config, which just checks that
+`www.google.com` is alive. It only has a single reactor handler enabled, the
+log handler, which logs to `/var/log/nymms/reactor.log`.
 
-    restart nymms-reactor
-    restart nymms-probe
-    restart nymms-scheduler
+To use the docker container with your own configs, you should put them in a
+directory, then mount it as a volume when you run the containers. If you put
+the configs in the directory `/etc/nymms` on the host, you should run the
+container like this:
 
-.. _`Upstart`: http://upstart.ubuntu.com/cookbook/
-
+  docker run -v /etc/nymms:/etc/nymms:ro --rm -it phobologic/nymms:latest /scheduler -v
 
 Using PIP
 =========
