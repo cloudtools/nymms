@@ -1,0 +1,7 @@
+# The variables in this context are shared with monitors, but are never passed
+# along between hosts.  This means that you must distribute it between all
+# probe hosts that use it.
+# The context is accessed in __private, so for example for the example_password
+# below:
+# __private.example_password
+example_password: example

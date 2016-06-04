@@ -38,5 +38,23 @@ Optionally:
 - pagerduty (0.2.1 https://pypi.python.org/pypi/pagerduty/0.2.1) if you use the
   pagerduty reactor handler
 
+Docker
+======
+
+A docker image is provided that can be used to run any of the daemons used in
+NYMMS. It can be pulled from `phobologic/nymms`. To run the daemons, you can
+launch them with the following command:
+
+  docker run -e "AWS_ACCESS_KEY_ID=<AWS_ACCESS_KEY_ID>" -e "AWS_SECRET_ACCESS_KEY=<AWS_SECRET_ACCESS_KEY>" --rm -it phobologic/nymms:latest /[scheduler|probe|reactor] <OPTIONAL_ARGS>
+
+For example, to run the scheduler (with verbose logging, the -v) you can run:
+
+  docker run --rm -it phobologic/nymms:latest /scheduler -v
+
+You can also set the `AWS_ACCESS_KEY_ID` & `AWS_SECRET_ACCESS_KEY` in a file,
+and then use `--env-file` rather than specifying the variables on the command
+line. Optionally, if you are running on a host in EC2 that has an IAM profile
+with all the necessary permissions, you do not need to specify the keys at all.
+
 .. _`boto pull request`: https://github.com/boto/boto/pull/1414
 .. _`ReadTheDocs`: https://nymms.readthedocs.io/en/latest/
