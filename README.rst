@@ -39,4 +39,4 @@ Optionally:
   pagerduty reactor handler
 
 .. _`boto pull request`: https://github.com/boto/boto/pull/1414
-.. _`ReadTheDocs`: http://nymms.readthedocs.org/en/latest/
+.. _`ReadTheDocs`: https://nymms.readthedocs.io/en/latest/
