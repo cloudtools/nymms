@@ -16,7 +16,7 @@ install_requires = [
     "six>=1.9.0",
     "validictory>=1.0.0",
     "Werkzeug>=0.10.1",
-    "Flask-API==0.6.2",
+    "Flask-API>=0.6.2",
 ]
 
 tests_require = [
